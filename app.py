@@ -6,7 +6,7 @@ import base64
 import os
 
 # ══════════════════════════════════════════════════════════════════
-#  CONFIGURACIÓN DE PÁGINA  ← debe ser el primer comando Streamlit
+#  CONFIGURACIÓN DE PÁGINA
 # ══════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Diagnóstico Operativo · CUC",
@@ -21,7 +21,6 @@ st.set_page_config(
 ADMIN_PASSWORD = "Admin123"
 LOGO_PATH      = "logo_cuc.png"
 
-# Encabezados exactos que debe tener la fila 1 de la hoja de Google Sheets
 COLUMNAS = [
     "timestamp",
     "nombre_taller",
@@ -36,547 +35,264 @@ COLUMNAS = [
 PREGUNTAS = [
     (
         "p1_rentabilidad",
-        "1. Rentabilidad: ¿En los últimos 3 meses ha tenido algún proyecto donde la utilidad final fue menor a la esperada? ¿Qué ocurrió y cuánto fue la diferencia aproximada?",
-        "Escriba su respuesta aquí. Ej: Sí, en un proyecto de cocina la utilidad fue 30% menor porque el material subió de precio…",
+        "Rentabilidad Financiera",
+        "¿En los últimos 3 meses ha tenido algún proyecto donde la utilidad final fue menor a la esperada? ¿Qué ocurrió y cuánto fue la diferencia aproximada?",
+        "Ej: Sí, en un proyecto de cocina la utilidad fue 30% menor porque el material subió de precio y hubo desperdicio no calculado.",
     ),
     (
         "p2_tiempo_operativo",
-        "2. Tiempo operativo: ¿Cuánto tiempo le toma en promedio elaborar una cotización completa desde que recibe la solicitud hasta que la envía al cliente?",
-        "Escriba su respuesta aquí. Ej: Me toma entre 1 y 2 días, principalmente porque debo consultar precios con proveedores…",
+        "Tiempo Operativo",
+        "¿Cuánto tiempo le toma en promedio elaborar una cotización completa desde que recibe la solicitud hasta que la envía al cliente?",
+        "Ej: Me toma entre 1 y 2 días, principalmente porque debo consultar precios actualizados con proveedores.",
     ),
     (
         "p3_normatividad_aiu",
-        "3. Normatividad AIU: ¿Ha tenido observaciones, ajustes o pérdida de contratos por errores en el manejo tributario (AIU, IVA u otros)? ¿Cuántas veces en el último año?",
-        "Escriba su respuesta aquí. Ej: Sí, dos veces en el último año me pidieron corregir el AIU en contratos con empresas…",
+        "Normatividad AIU",
+        "¿Ha tenido observaciones, ajustes o pérdida de contratos por errores en el manejo tributario (AIU, IVA u otros)? ¿Cuántas veces en el último año?",
+        "Ej: Sí, dos veces en el último año me pidieron corregir el AIU en contratos con constructoras.",
     ),
     (
         "p4_percepcion_valor",
-        "4. Percepción de valor: ¿Cómo entrega actualmente sus cotizaciones (WhatsApp, Excel, PDF formal, sistema)? ¿Ha notado diferencias en la respuesta del cliente según el formato?",
-        "Escriba su respuesta aquí. Ej: Las envío por WhatsApp en una foto escrita a mano; los clientes empresariales me piden PDF…",
+        "Percepción de Valor",
+        "¿Cómo entrega actualmente sus cotizaciones (WhatsApp, Excel, PDF formal, sistema)? ¿Ha notado diferencias en la respuesta del cliente según el formato?",
+        "Ej: Las envío por WhatsApp en texto; los clientes empresariales me piden PDF formal y a veces dudan del precio.",
     ),
     (
         "p5_inteligencia_negocio",
-        "5. Inteligencia de negocio: ¿Cuenta actualmente con algún sistema o registro que le permita identificar qué tipo de material (granito, sinterizado, etc.) o proyecto le deja mayor margen? Si no, ¿cómo toma esa decisión?",
-        "Escriba su respuesta aquí. Ej: No tengo un sistema, lo decido por experiencia o según cómo me fue en proyectos anteriores…",
+        "Inteligencia de Negocio",
+        "¿Cuenta actualmente con algún sistema o registro que le permita identificar qué tipo de material (granito, sinterizado, cuarzo, etc.) le deja mayor margen? Si no, ¿cómo toma esa decisión?",
+        "Ej: No tengo un sistema exacto, lo decido por experiencia empírica de lo que me quedó en proyectos pasados.",
     ),
 ]
 
 # ══════════════════════════════════════════════════════════════════
-#  CSS — COMPLETAMENTE ADAPTATIVO AL TEMA (CLARO / OSCURO)
-#
-#  Principios aplicados:
-#  1. CERO colores de fondo hardcodeados en tarjetas o body.
-#     Todos los fondos usan var(--background-color) y
-#     var(--secondary-background-color), las variables nativas
-#     que Streamlit actualiza al cambiar de tema.
-#  2. Los colores de texto usan var(--text-color) para adaptarse.
-#  3. El logo JPG con fondo negro usa mix-blend-mode: multiply en
-#     modo claro → el fondo negro desaparece; en modo oscuro se
-#     desactiva para que el logo se vea con normalidad.
-#  4. El selector de fuente está acotado al contenido de la app,
-#     no a los menús nativos de Streamlit, para evitar overflow.
+#  SESSION STATE INICIAL
 # ══════════════════════════════════════════════════════════════════
-CSS = """
+_defaults = {
+    "step": 0,
+    "enviado": False,
+    "w_nombre": "",
+    "w_correo": "",
+    "tema_oscuro": True,  # Inicia en oscuro por defecto
+    "r_p1": "", "r_p2": "", "r_p3": "", "r_p4": "", "r_p5": "",
+}
+for _k, _v in _defaults.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
+
+SS_KEYS = {
+    "p1_rentabilidad": "r_p1",
+    "p2_tiempo_operativo": "r_p2",
+    "p3_normatividad_aiu": "r_p3",
+    "p4_percepcion_valor": "r_p4",
+    "p5_inteligencia_negocio": "r_p5",
+}
+TOTAL_PREGUNTAS = len(PREGUNTAS)
+
+# ══════════════════════════════════════════════════════════════════
+#  LÓGICA DINÁMICA DE COLORES (MODO CLARO / OSCURO)
+# ══════════════════════════════════════════════════════════════════
+if st.session_state.tema_oscuro:
+    # Variables Modo Oscuro
+    bg_main = "#0B0E14"
+    bg_card = "#151A23"
+    text_main = "#F2F5F8"
+    text_muted = "#8B949E"
+    border_subtle = "#30363D"
+    btn_text = "#0B0E14"
+    btn_bg = "#F2F5F8"
+    logo_blend = "normal"
+else:
+    # Variables Modo Claro
+    bg_main = "#F8F9FA"
+    bg_card = "#FFFFFF"
+    text_main = "#0F172A"
+    text_muted = "#64748B"
+    border_subtle = "#E2E8F0"
+    btn_text = "#FFFFFF"
+    btn_bg = "#0F172A"
+    logo_blend = "multiply"  # Desaparece el fondo negro del JPG
+
+# ══════════════════════════════════════════════════════════════════
+#  CSS — DISEÑO PREMIUM Y RESPONSIVO
+# ══════════════════════════════════════════════════════════════════
+CSS = f"""
 <style>
-/* ── Google Fonts ── */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-/* ── Variables CUC: SOLO colores de marca, nunca fondos fijos ── */
-:root {
-    --cuc-red:      #E3000F;
-    --cuc-red-dark: #B3000B;
-    --cuc-red-a08:  rgba(227, 0, 15, 0.08);
-    --cuc-red-a18:  rgba(227, 0, 15, 0.18);
-    --cuc-red-a35:  rgba(227, 0, 15, 0.35);
-    --success:      #16A34A;
-    --success-a10:  rgba(22, 163, 74, 0.10);
-    --warning:      #D97706;
-    --warning-a10:  rgba(217, 119, 6, 0.10);
-    --border-muted: rgba(127, 127, 127, 0.20);
-}
+:root {{
+    --bg-main: {bg_main};
+    --bg-card: {bg_card};
+    --text-main: {text_main};
+    --text-muted: {text_muted};
+    --border-subtle: {border_subtle};
+    --btn-text: {btn_text};
+    --btn-bg: {btn_bg};
+    --cuc-red: #E3000F;
+    --cuc-red-hover: #B3000B;
+}}
 
-/* ── Fuente aplicada SOLO al contenido de la app.
-   Excluye menús nativos de Streamlit (toolbar, dropdowns)
-   para evitar que el texto de esos elementos se desborde. ── */
-.stApp,
-[data-testid="stMainBlockContainer"],
-[data-testid="stVerticalBlock"],
-[data-testid="stHorizontalBlock"],
-.stTextInput, .stTextArea, .stButton,
-.stDownloadButton, .stMarkdown,
-.stMetric, .stDataFrame, .stCaption {
-    font-family: 'Montserrat', sans-serif;
-}
+html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stTextArea {{
+    font-family: 'Inter', sans-serif !important;
+}}
 
-/* ── Fondo de la app: variable nativa de Streamlit ── */
-.stApp {
-    background-color: var(--background-color) !important;
-}
+#MainMenu {{visibility: hidden !important;}}
+header {{visibility: hidden !important;}}
+footer {{visibility: hidden !important;}}
 
-/* ════════════════════════════════════════════
-   HEADER — grid responsivo + logo blend
-════════════════════════════════════════════ */
-.cuc-header {
-    display: grid;
-    grid-template-columns: 175px 1fr;
-    align-items: center;
-    gap: 20px;
-    padding-bottom: 18px;
-    border-bottom: 3px solid var(--cuc-red);
-    margin-bottom: 28px;
-}
+.stApp {{ background-color: var(--bg-main) !important; }}
 
-/* En móvil: apilar centrado sin desproporción */
-@media (max-width: 520px) {
-    .cuc-header {
-        grid-template-columns: 1fr;
-        gap: 12px;
-        text-align: center;
-    }
-    .logo-wrap { justify-content: center; }
-    .logo-wrap img { max-width: 120px; }
-}
-
-.logo-wrap {
+.premium-header {{
     display: flex;
+    flex-direction: column;
     align-items: center;
-}
-
-.logo-wrap img {
-    width: 100%;
-    max-width: 175px;
-    height: auto;
+    justify-content: center;
+    padding: 20px 0 10px 0;
+}}
+.premium-header img {{
+    height: 45px;
     object-fit: contain;
-    display: block;
-    border-radius: 4px;
-    /* MODO CLARO: el negro del JPG desaparece fundiéndose con el fondo blanco */
-    mix-blend-mode: multiply;
-    transition: mix-blend-mode 0.2s;
-}
-
-/* MODO OSCURO: desactivar blend para que el logo se vea normal */
-@media (prefers-color-scheme: dark) {
-    .logo-wrap img { mix-blend-mode: normal; }
-}
-/* Streamlit inyecta data-theme en el body según el tema activo */
-[data-theme="dark"]  .logo-wrap img { mix-blend-mode: normal   !important; }
-[data-theme="light"] .logo-wrap img { mix-blend-mode: multiply !important; }
-
-.header-text h2 {
-    font-family: 'Montserrat', sans-serif;
-    font-size: clamp(1.05rem, 3vw, 1.45rem);
-    font-weight: 800;
-    color: var(--cuc-red);
-    margin: 0 0 4px 0;
-    line-height: 1.2;
-}
-.header-text .header-sub {
-    font-size: 0.70rem;
-    color: var(--text-color);
-    opacity: 0.50;
-    margin: 0;
-    font-weight: 500;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-}
-
-/* ════════════════════════════════════════════
-   BANNER INTRODUCTORIO — fondo adaptativo
-════════════════════════════════════════════ */
-.banner-intro {
-    background: var(--cuc-red-a08);
-    border: 1px solid var(--cuc-red-a18);
-    border-left: 4px solid var(--cuc-red);
-    border-radius: 10px;
-    padding: 16px 18px;
-    margin-bottom: 22px;
-}
-.banner-intro .b-title {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--cuc-red);
-    margin: 0 0 6px 0;
-}
-.banner-intro .b-body {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.84rem;
-    color: var(--text-color);
-    opacity: 0.80;
-    margin: 0;
-    line-height: 1.65;
-}
-
-/* ════════════════════════════════════════════
-   SECTION LABEL (cabecera de sección)
-════════════════════════════════════════════ */
-.section-label {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: var(--cuc-red);
-    text-transform: uppercase;
-    letter-spacing: 0.12em;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--cuc-red-a18);
-    margin-bottom: 16px;
-    margin-top: 8px;
-}
-
-/* ════════════════════════════════════════════
-   AVISO PRIVACIDAD — fondo adaptativo
-════════════════════════════════════════════ */
-.privacy-notice {
-    background: var(--cuc-red-a08);
-    border-left: 3px solid var(--cuc-red-dark);
-    border-radius: 0 8px 8px 0;
-    padding: 10px 14px;
-    margin: 4px 0 20px 0;
-}
-.privacy-notice p {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.72rem;
-    font-style: italic;
-    color: var(--text-color);
-    opacity: 0.65;
-    margin: 0;
-    line-height: 1.6;
-}
-
-/* ════════════════════════════════════════════
-   LABELS DE CAMPOS — color adaptativo
-════════════════════════════════════════════ */
-.stTextInput label,
-.stTextArea label,
-.stPasswordInput label {
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 1.05rem !important;
-    line-height: 1.5 !important;
-    margin-bottom: 6px !important;
-    color: var(--text-color) !important;
-}
-
-/* ════════════════════════════════════════════
-   INPUTS — fondo y borde adaptativos
-════════════════════════════════════════════ */
-.stTextInput input,
-.stTextArea textarea,
-.stPasswordInput input {
-    background: var(--secondary-background-color) !important;
-    border: 1.5px solid var(--border-muted) !important;
-    border-radius: 9px !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-size: 0.95rem !important;
-    color: var(--text-color) !important;
-    padding: 10px 14px !important;
-    transition: border-color 0.2s, box-shadow 0.2s !important;
-}
-.stTextInput input:focus,
-.stTextArea textarea:focus,
-.stPasswordInput input:focus {
-    border-color: var(--cuc-red) !important;
-    box-shadow: 0 0 0 3px var(--cuc-red-a18) !important;
-    outline: none !important;
-}
-
-/* Espaciado entre preguntas */
-div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
-    margin-bottom: 28px !important;
-}
-.stTextArea { margin-bottom: 24px !important; }
-
-/* ════════════════════════════════════════════
-   BOTÓN PRINCIPAL — rojo CUC
-════════════════════════════════════════════ */
-.stButton > button {
-    background: var(--cuc-red) !important;
-    color: #FFFFFF !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 1.05rem !important;
-    letter-spacing: 0.03em !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 0.85rem 2.5rem !important;
-    width: 100% !important;
-    cursor: pointer !important;
-    box-shadow: 0 5px 20px var(--cuc-red-a35) !important;
-    transition: background 0.2s, transform 0.12s, box-shadow 0.2s !important;
-    margin-top: 8px !important;
-}
-.stButton > button:hover {
-    background: var(--cuc-red-dark) !important;
-    box-shadow: 0 7px 26px rgba(227, 0, 15, 0.50) !important;
-    transform: translateY(-2px) !important;
-}
-.stButton > button:active { transform: translateY(0) !important; }
-
-/* ════════════════════════════════════════════
-   BOTÓN ATRÁS (wizard) — override del rojo
-   Se aplica al wrapper .wizard-back-col
-════════════════════════════════════════════ */
-.wizard-back-col .stButton > button {
-    background: var(--secondary-background-color) !important;
-    color: var(--text-color) !important;
-    border: 1.5px solid var(--border-muted) !important;
-    box-shadow: none !important;
-    font-size: 0.95rem !important;
-    font-weight: 600 !important;
-    opacity: 0.75;
-}
-.wizard-back-col .stButton > button:hover {
-    border-color: var(--cuc-red) !important;
-    color: var(--cuc-red) !important;
-    background: var(--secondary-background-color) !important;
-    box-shadow: none !important;
-    transform: none !important;
-    opacity: 1;
-}
-
-/* ════════════════════════════════════════════
-   BOTÓN DESCARGA
-════════════════════════════════════════════ */
-.stDownloadButton > button {
-    background: var(--cuc-red) !important;
-    color: #FFFFFF !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 0.65rem 2rem !important;
-    width: 100% !important;
-    box-shadow: 0 4px 14px var(--cuc-red-a35) !important;
-    transition: all 0.2s !important;
-}
-.stDownloadButton > button:hover {
-    background: var(--cuc-red-dark) !important;
-    transform: translateY(-1px) !important;
-    box-shadow: 0 6px 20px rgba(227, 0, 15, 0.45) !important;
-}
-
-/* ════════════════════════════════════════════
-   ALERTAS — fondos semitransparentes adaptativos
-   (sin ningún color de fondo fijo como #FFF3E0)
-════════════════════════════════════════════ */
-.alert-success {
-    background: var(--success-a10);
-    border: 1.5px solid rgba(22, 163, 74, 0.30);
-    border-radius: 12px;
-    padding: 22px 24px;
-    text-align: center;
-    margin-top: 14px;
-}
-.alert-success .as-icon {
-    font-size: 2rem;
-    display: block;
-    margin-bottom: 8px;
-}
-.alert-success .as-title {
-    font-family: 'Montserrat', sans-serif;
-    color: var(--success);
-    font-weight: 700;
-    font-size: 1.05rem;
-    margin: 0 0 6px;
-}
-.alert-success .as-body {
-    font-family: 'Montserrat', sans-serif;
-    color: var(--text-color);
-    opacity: 0.70;
-    font-weight: 400;
-    font-size: 0.84rem;
-    margin: 0;
-    line-height: 1.55;
-}
-
-.alert-duplicate {
-    background: var(--warning-a10);
-    border: 1.5px solid rgba(217, 119, 6, 0.30);
-    border-radius: 12px;
-    padding: 20px 22px;
-    text-align: center;
-}
-.alert-duplicate p {
-    font-family: 'Montserrat', sans-serif;
-    color: var(--warning);
+    margin-bottom: 15px;
+    mix-blend-mode: {logo_blend};
+}}
+.premium-header h1 {{
+    font-size: 1.2rem;
     font-weight: 600;
-    font-size: 0.95rem;
+    color: var(--text-main);
     margin: 0;
-    line-height: 1.55;
-}
-
-/* ════════════════════════════════════════════
-   SIDEBAR — panel admin con fondo institucional fijo.
-   Se mantiene oscuro intencionalmente: es un panel
-   de acceso seguro, no debe seguir el tema público.
-════════════════════════════════════════════ */
-[data-testid="stSidebar"] {
-    background: linear-gradient(175deg, #1A0505 0%, #3D0B0B 100%) !important;
-}
-[data-testid="stSidebar"] .stMarkdown p,
-[data-testid="stSidebar"] .stMarkdown h3,
-[data-testid="stSidebar"] small {
-    color: #F0DADA !important;
-    font-family: 'Montserrat', sans-serif !important;
-}
-[data-testid="stSidebar"] .stTextInput label {
-    color: #F0DADA !important;
-    font-size: 0.88rem !important;
-    font-family: 'Montserrat', sans-serif !important;
-}
-[data-testid="stSidebar"] .stTextInput input {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border-color: rgba(255, 255, 255, 0.18) !important;
-    color: #FFFFFF !important;
-    border-radius: 8px !important;
-}
-
-/* ════════════════════════════════════════════
-   MÉTRICAS ADMIN — fondo adaptativo
-════════════════════════════════════════════ */
-[data-testid="metric-container"] {
-    background: var(--secondary-background-color) !important;
-    border: 1px solid var(--cuc-red-a18) !important;
-    border-radius: 10px !important;
-    padding: 16px !important;
-}
-[data-testid="stMetricValue"] {
-    font-family: 'Montserrat', sans-serif !important;
-    color: var(--cuc-red) !important;
-    font-size: 2.2rem !important;
-    font-weight: 800 !important;
-}
-[data-testid="stMetricLabel"] p {
-    color: var(--text-color) !important;
-    opacity: 0.55 !important;
-    font-size: 0.72rem !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.06em !important;
-}
-
-/* ════════════════════════════════════════════
-   DATAFRAME — borde adaptativo
-════════════════════════════════════════════ */
-.stDataFrame {
-    border: 1px solid var(--border-muted) !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-}
-
-/* ════════════════════════════════════════════
-   BADGE ADMIN
-════════════════════════════════════════════ */
-.admin-badge {
-    display: inline-block;
-    background: var(--cuc-red);
-    color: #FFFFFF;
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 12px;
-}
-
-/* ════════════════════════════════════════════
-   FOOTER — color y borde adaptativos
-════════════════════════════════════════════ */
-.footer-cuc {
-    font-family: 'Montserrat', sans-serif;
+    letter-spacing: 0.02em;
     text-align: center;
-    padding: 28px 0 14px;
-    font-size: 0.70rem;
-    border-top: 1px solid var(--border-muted);
-    margin-top: 36px;
-    color: var(--text-color);
-    opacity: 0.42;
-}
-.footer-cuc strong {
-    color: var(--cuc-red);
-    opacity: 1;
-}
+}}
 
-/* ════════════════════════════════════════════
-   MENÚ NATIVO STREAMLIT — prevenir desbordamiento
-════════════════════════════════════════════ */
-[role="menu"], [role="menuitem"], [role="option"],
-div[class*="dropdown"], ul[class*="menu"], li[class*="menu"],
-[data-testid="stToolbarActionButtonTooltip"] {
-    font-family: inherit !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    max-width: 100% !important;
-    box-sizing: border-box !important;
-}
+.saas-card {{
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 16px;
+    padding: 40px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+    transition: all 0.3s ease;
+}}
 
-/* ════════════════════════════════════════════
-   WIZARD — Estilos exclusivos del flujo paso a paso
-════════════════════════════════════════════ */
-
-/* Indicador "Pregunta N de 5" */
-.wizard-step-indicator {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: var(--cuc-red);
-    text-transform: uppercase;
-    letter-spacing: 0.10em;
-    text-align: center;
+.welcome-title {{
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-main);
     margin-bottom: 10px;
-}
+    line-height: 1.3;
+}}
+.welcome-text {{
+    font-size: 0.95rem;
+    color: var(--text-muted);
+    line-height: 1.6;
+    margin-bottom: 25px;
+}}
 
-/* Tarjeta contenedora de cada pregunta */
-.wizard-question-card {
-    background: var(--secondary-background-color);
-    border: 1px solid var(--border-muted);
-    border-top: 3px solid var(--cuc-red);
-    border-radius: 14px;
-    padding: 30px 28px 10px;
-    margin-bottom: 18px;
-}
+.stTextInput input, .stTextArea textarea {{
+    background-color: transparent !important;
+    border: none !important;
+    border-bottom: 2px solid var(--border-subtle) !important;
+    border-radius: 0 !important;
+    color: var(--text-main) !important;
+    font-size: 1.1rem !important;
+    padding: 12px 0 !important;
+    box-shadow: none !important;
+}}
+.stTextInput input:focus, .stTextArea textarea:focus {{
+    border-bottom: 2px solid var(--cuc-red) !important;
+}}
+.stTextInput label, .stTextArea label {{
+    font-size: 0.85rem !important;
+    color: var(--text-muted) !important;
+    font-weight: 500 !important;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}}
 
-/* Texto de la pregunta grande y legible */
-.wizard-question-text {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 1.18rem;
-    font-weight: 700;
-    color: var(--text-color);
-    line-height: 1.55;
-    margin: 0 0 22px 0;
-}
+.stButton > button {{
+    background-color: var(--btn-bg) !important;
+    color: var(--btn-text) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+    padding: 12px 24px !important;
+    width: 100% !important;
+    transition: all 0.2s ease !important;
+}}
+.stButton > button:hover {{ transform: translateY(-2px); opacity: 0.9; }}
 
-/* HR */
-hr { border-color: var(--border-muted) !important; }
+.btn-rojo .stButton > button {{
+    background-color: var(--cuc-red) !important;
+    color: #FFFFFF !important;
+}}
+.btn-rojo .stButton > button:hover {{ background-color: var(--cuc-red-hover) !important; }}
+
+.btn-outline .stButton > button {{
+    background-color: transparent !important;
+    color: var(--text-muted) !important;
+    border: 1px solid var(--border-subtle) !important;
+}}
+.btn-outline .stButton > button:hover {{
+    color: var(--text-main) !important;
+    border-color: var(--text-muted) !important;
+}}
+
+.wizard-step {{
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--cuc-red);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 10px;
+    display: block;
+}}
+.wizard-title {{
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: var(--text-main);
+    line-height: 1.4;
+    margin: 0 0 30px 0;
+}}
+
+.custom-alert {{
+    background-color: rgba(227, 0, 15, 0.1);
+    border-left: 3px solid var(--cuc-red);
+    padding: 15px;
+    border-radius: 4px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}}
+
+.stProgress > div > div > div > div {{ background-color: var(--cuc-red) !important; }}
+
+.minimal-footer {{
+    text-align: center;
+    margin-top: 50px;
+    padding-bottom: 20px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}}
+
+/* Ajuste del Toggle Switch */
+div[data-testid="stToggle"] label p {{
+    color: var(--text-muted) !important;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+}}
 </style>
 """
-
-# ══════════════════════════════════════════════════════════════════
-#  INYECTAR CSS
-# ══════════════════════════════════════════════════════════════════
 st.markdown(CSS, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════
-#  CONEXIÓN A GOOGLE SHEETS
-#
-#  Requiere .streamlit/secrets.toml con la sección [connections.gsheets].
-#  Ver README.md para instrucciones de configuración completas.
+#  FUNCIONES DE BASE DE DATOS
 # ══════════════════════════════════════════════════════════════════
 @st.cache_resource
 def get_conn() -> GSheetsConnection:
-    """Retorna la conexión cacheada a Google Sheets."""
     return st.connection("gsheets", type=GSheetsConnection)
 
-
 def cargar_datos() -> pd.DataFrame:
-    """
-    Lee todos los registros desde Google Sheets.
-    ttl=60 → refresca el caché cada 60 segundos sin bloquear la app.
-    """
     try:
         conn = get_conn()
         df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
@@ -585,365 +301,177 @@ def cargar_datos() -> pd.DataFrame:
             return pd.DataFrame(columns=COLUMNAS)
         df.columns = COLUMNAS[: len(df.columns)]
         return df
-    except Exception as e:
-        st.error(f"⚠️ Error al leer Google Sheets: {e}")
+    except Exception:
         return pd.DataFrame(columns=COLUMNAS)
 
-
 def correo_existe(df: pd.DataFrame, correo: str) -> bool:
-    """Verifica duplicados consultando los datos de Google Sheets."""
     if df.empty or "correo" not in df.columns:
         return False
-    return correo.strip().lower() in (
-        df["correo"].dropna().str.strip().str.lower().values
-    )
-
+    return correo.strip().lower() in (df["correo"].dropna().str.strip().str.lower().values)
 
 def guardar_registro(registro: dict) -> bool:
-    """
-    Añade una nueva fila a Google Sheets usando conn.update().
-    No escribe ningún archivo local.
-    """
     try:
         conn = get_conn()
         df_actual = cargar_datos()
         nueva_fila = pd.DataFrame([registro])
         df_nuevo = pd.concat([df_actual, nueva_fila], ignore_index=True)
-        conn.update(data=df_nuevo)          # ← escribe directo en la nube
-        st.cache_resource.clear()           # fuerza lectura fresca en el próximo cargar_datos()
+        conn.update(data=df_nuevo)
+        st.cache_resource.clear()
         return True
-    except Exception as e:
-        st.error(f"⚠️ Error al guardar en Google Sheets: {e}")
+    except Exception:
         return False
 
-
 # ══════════════════════════════════════════════════════════════════
-#  SESSION STATE
-#  step = 0          → Pantalla de bienvenida (nombre + correo)
-#  step = 1 … 5      → Una pregunta por pantalla (wizard)
-#  enviado = True     → Pantalla de confirmación final
-#  w_nombre / w_correo → Identificación persistida entre pasos
-#  r_p1 … r_p5        → Respuestas temporales (persisten al retroceder)
-# ══════════════════════════════════════════════════════════════════
-_defaults = {
-    "step":     0,
-    "enviado":  False,
-    "w_nombre": "",
-    "w_correo": "",
-    "r_p1":     "",
-    "r_p2":     "",
-    "r_p3":     "",
-    "r_p4":     "",
-    "r_p5":     "",
-}
-for _k, _v in _defaults.items():
-    if _k not in st.session_state:
-        st.session_state[_k] = _v
-
-# ══════════════════════════════════════════════════════════════════
-#  SIDEBAR — ACCESO ADMIN (siempre visible al abrir el panel lateral)
+#  SIDEBAR — ACCESO ADMIN OCULTO
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### 🔐 Acceso Administrador")
-    st.markdown("---")
-    pwd_input = st.text_input(
-        "Contraseña",
-        type="password",
-        placeholder="Ingrese la contraseña…",
-        key="admin_pwd",
-    )
-    if pwd_input and pwd_input != ADMIN_PASSWORD:
-        st.error("Contraseña incorrecta.")
-    st.markdown("---")
-    st.markdown(
-        "<small style='opacity:0.45;'>Panel de administración CUC · Investigación académica</small>",
-        unsafe_allow_html=True,
-    )
-
+    st.markdown("### 🔐 Acceso Admin")
+    pwd_input = st.text_input("Contraseña", type="password", key="admin_pwd")
 es_admin = (pwd_input == ADMIN_PASSWORD)
 
 # ══════════════════════════════════════════════════════════════════
-#  HEADER — logo con mix-blend + grid responsivo
+#  HEADER Y TOGGLE DE TEMA
 # ══════════════════════════════════════════════════════════════════
 def render_header() -> None:
-    """Renderiza el header institucional con logo y título."""
+    # Selector de Tema alineado a la derecha
+    col_vacia, col_toggle = st.columns([4, 1])
+    with col_toggle:
+        st.toggle("Tema Oscuro", key="tema_oscuro")
+        
     logo_tag = ""
     if os.path.exists(LOGO_PATH):
-        ext  = LOGO_PATH.rsplit(".", 1)[-1].lower()
-        mime = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
         with open(LOGO_PATH, "rb") as f:
             b64 = base64.b64encode(f.read()).decode()
-        logo_tag = f'<img src="data:{mime};base64,{b64}" alt="Logo Universidad de la Costa CUC">'
-
+        logo_tag = f'<img src="data:image/jpeg;base64,{b64}" alt="CUC">'
+    
     st.markdown(f"""
-    <div class="cuc-header">
-        <div class="logo-wrap">{logo_tag}</div>
-        <div class="header-text">
-            <h2>Diagnóstico Operativo</h2>
-            <p class="header-sub">Transformadores de Superficies · Investigación CUC 2026</p>
-        </div>
+    <div class="premium-header">
+        {logo_tag}
+        <h1>Investigación de Operaciones</h1>
     </div>
     """, unsafe_allow_html=True)
-
 
 # ══════════════════════════════════════════════════════════════════
 #  VISTA 2 — PANEL DE ADMINISTRACIÓN
 # ══════════════════════════════════════════════════════════════════
 if es_admin:
     render_header()
-    st.markdown('<div class="admin-badge">🛡 Panel de Administración</div>', unsafe_allow_html=True)
-    st.markdown("## 📊 Datos Recolectados")
-
-    with st.spinner("Cargando datos desde Google Sheets…"):
-        df = cargar_datos()
-
-    total          = len(df)
-    correos_unicos = df["correo"].nunique() if not df.empty else 0
-    ultimo         = "—"
-    if not df.empty and "timestamp" in df.columns:
-        valores = df["timestamp"].dropna()
-        ultimo  = str(valores.iloc[-1])[:10] if not valores.empty else "—"
-
-    col1, col2, col3 = st.columns(3)
-    with col1: st.metric("Total de registros", total)
-    with col2: st.metric("Correos únicos", correos_unicos)
-    with col3: st.metric("Último registro", ultimo)
-
-    st.markdown("---")
-
+    st.markdown("## 📊 Base de Datos Activa")
+    df = cargar_datos()
+    
     if df.empty:
-        st.info("Aún no hay registros en Google Sheets.")
+        st.info("Sin registros.")
     else:
-        st.markdown("### 📋 Tabla de Respuestas")
-        df_display = df.rename(columns={
-            "timestamp":               "Fecha/Hora",
-            "nombre_taller":           "Nombre del Taller",
-            "correo":                  "Correo",
-            "p1_rentabilidad":         "P1 – Rentabilidad",
-            "p2_tiempo_operativo":     "P2 – Tiempo Operativo",
-            "p3_normatividad_aiu":     "P3 – Normatividad AIU",
-            "p4_percepcion_valor":     "P4 – Percepción de Valor",
-            "p5_inteligencia_negocio": "P5 – Inteligencia de Negocio",
-        })
-        st.dataframe(df_display, use_container_width=True, height=420)
-
-        st.markdown("---")
-        st.markdown("### ⬇️ Exportar para Business Intelligence")
+        st.dataframe(df, use_container_width=True, height=400)
         csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
-        st.download_button(
-            label="📥  Descargar CSV para Power BI / Excel",
-            data=csv_bytes,
-            file_name=f"diagnostico_cuc_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
-            mime="text/csv",
-            use_container_width=True,
-        )
-        st.caption(
-            "Exportado con **UTF-8 con BOM** — compatible con Power BI, "
-            "Excel y Tableau sin errores de caracteres especiales."
-        )
-
-    st.markdown(
-        '<div class="footer-cuc">Panel de Administración · '
-        '<strong>Universidad de la Costa (CUC)</strong> · Uso interno exclusivo</div>',
-        unsafe_allow_html=True,
-    )
-
+        st.download_button("📥 Descargar CSV", data=csv_bytes, file_name="datos.csv", mime="text/csv")
 
 # ══════════════════════════════════════════════════════════════════
-#  VISTA 1 — INTERFAZ DEL CLIENTE  (Wizard paso a paso)
+#  VISTA 1 — INTERFAZ DEL CLIENTE
 # ══════════════════════════════════════════════════════════════════
 else:
     render_header()
 
-    # ── Llave de session_state para cada pregunta ─────────────────
-    SS_KEYS = {
-        "p1_rentabilidad":         "r_p1",
-        "p2_tiempo_operativo":     "r_p2",
-        "p3_normatividad_aiu":     "r_p3",
-        "p4_percepcion_valor":     "r_p4",
-        "p5_inteligencia_negocio": "r_p5",
-    }
-    TOTAL_PREGUNTAS = len(PREGUNTAS)
-
-    # ─────────────────────────────────────────────────────────────
-    #  PANTALLA FINAL — confirmación tras envío exitoso
-    # ─────────────────────────────────────────────────────────────
     if st.session_state.enviado:
-        st.markdown("""
-        <div class="alert-success">
-            <span class="as-icon">✅</span>
-            <p class="as-title">¡Diagnóstico enviado con éxito!</p>
-            <p class="as-body">Gracias por contribuir a la investigación de la
-            Universidad de la Costa. Su información ha sido registrada de forma
-            segura en la nube.</p>
+        st.markdown(f"""
+        <div class="saas-card" style="text-align:center;">
+            <h2 style="color:{text_main}; margin-bottom:10px;">Diagnóstico completado.</h2>
+            <p style="color:{text_muted}; line-height:1.6;">Sus respuestas han sido encriptadas y guardadas de forma segura.<br>Gracias por su tiempo y experiencia.</p>
         </div>
         """, unsafe_allow_html=True)
-        st.markdown(
-            '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
-            'Barranquilla, Colombia · Investigación Académica</div>',
-            unsafe_allow_html=True,
-        )
         st.stop()
 
-    # ─────────────────────────────────────────────────────────────
-    #  PASO 0 — Bienvenida + identificación
-    # ─────────────────────────────────────────────────────────────
     if st.session_state.step == 0:
-
-        # Banner introductorio
-        st.markdown("""
-        <div class="banner-intro">
-            <p class="b-title">🔬 Investigación Académica · Universidad de la Costa</p>
-            <p class="b-body">
-                Este diagnóstico hace parte de un estudio sobre procesos operativos y comerciales
-                en talleres de transformación de superficies. Sus respuestas son fundamentales
-                para el avance de la investigación.
-                <strong>El proceso toma menos de 5 minutos.</strong>
-            </p>
-        </div>
+        st.markdown(f"""
+        <div class="saas-card">
+            <h2 class="welcome-title">Bienvenido al Diagnóstico Sectorial.</h2>
+            <p class="welcome-text">Esta herramienta académica evalúa la eficiencia operativa en la transformación de superficies arquitectónicas. Toma menos de 4 minutos y consta de 5 preguntas breves.</p>
         """, unsafe_allow_html=True)
 
-        st.markdown('<div class="section-label">📝 Datos de Identificación</div>', unsafe_allow_html=True)
-
-        col_a, col_b = st.columns(2)
-        with col_a:
-            nombre_input = st.text_input(
-                "Nombre del Taller / Negocio *",
-                value=st.session_state.w_nombre,
-                placeholder="Ej: Mármoles del Norte",
-                key="input_nombre_p0",
-            )
-        with col_b:
-            correo_input = st.text_input(
-                "Correo Electrónico *",
-                value=st.session_state.w_correo,
-                placeholder="ejemplo@correo.com",
-                key="input_correo_p0",
-            )
-
-        st.markdown("""
-        <div class="privacy-notice">
-            <p>🔒 <em>Sus datos están protegidos por la Ley 1581 de 2012 (Habeas Data).
-            Esta información es recopilada con fines netamente académicos y de validación
-            investigativa para la Universidad de la Costa (CUC). No será compartida con
-            terceros ni utilizada para fines comerciales.</em></p>
-        </div>
-        """, unsafe_allow_html=True)
-
+        nombre_input = st.text_input("Compañía / Taller", value=st.session_state.w_nombre, placeholder="Nombre de su negocio")
+        correo_input = st.text_input("Correo corporativo o personal", value=st.session_state.w_correo, placeholder="ejemplo@correo.com")
+        
         st.markdown("<br>", unsafe_allow_html=True)
-
-        if st.button("Comenzar Diagnóstico →", key="btn_comenzar"):
-            if not nombre_input.strip():
-                st.error("Por favor ingrese el nombre del taller.")
-            elif not correo_input.strip() or "@" not in correo_input:
-                st.error("Por favor ingrese un correo electrónico válido.")
+        
+        if st.button("Comenzar Evaluación"):
+            if not nombre_input.strip() or "@" not in correo_input:
+                st.markdown('<div class="custom-alert">⚠️ Por favor complete ambos campos correctamente para iniciar.</div>', unsafe_allow_html=True)
             else:
-                with st.spinner("Verificando…"):
-                    df_check = cargar_datos()
-                    es_dup = correo_existe(df_check, correo_input)
+                with st.spinner("Conectando..."):
+                    if correo_existe(cargar_datos(), correo_input):
+                        st.markdown('<div class="custom-alert">El correo ingresado ya completó la evaluación previamente.</div>', unsafe_allow_html=True)
+                    else:
+                        st.session_state.w_nombre = nombre_input.strip()
+                        st.session_state.w_correo = correo_input.strip().lower()
+                        st.session_state.step = 1
+                        st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
-                if es_dup:
-                    st.markdown("""
-                    <div class="alert-duplicate">
-                        <p>⚠️ Este correo ya ha completado el diagnóstico.<br>
-                        <span style="font-weight:400;font-size:0.88rem;">
-                        ¡Gracias por su valioso aporte a nuestra investigación!</span></p>
-                    </div>
-                    """, unsafe_allow_html=True)
-                else:
-                    st.session_state.w_nombre = nombre_input.strip()
-                    st.session_state.w_correo = correo_input.strip().lower()
-                    st.session_state.step = 1
-                    st.rerun()
-
-    # ─────────────────────────────────────────────────────────────
-    #  PASOS 1–5 — Una pregunta por pantalla
-    # ─────────────────────────────────────────────────────────────
     elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
+        idx = st.session_state.step - 1
+        clave, titulo_corto, pregunta, placeholder = PREGUNTAS[idx]
+        ss_key = SS_KEYS[clave]
+        es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
 
-        idx              = st.session_state.step - 1   # índice 0-based en PREGUNTAS
-        clave, pregunta, placeholder = PREGUNTAS[idx]
-        ss_key           = SS_KEYS[clave]
-        es_ultima        = (st.session_state.step == TOTAL_PREGUNTAS)
-
-        # Barra de progreso nativa
         st.progress(st.session_state.step / TOTAL_PREGUNTAS)
+        
+        st.markdown(f"""
+        <div class="saas-card" style="margin-top:20px;">
+            <span class="wizard-step">Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}</span>
+            <h3 class="wizard-title">{pregunta}</h3>
+        """, unsafe_allow_html=True)
 
-        # Indicador de paso
-        st.markdown(
-            f'<div class="wizard-step-indicator">'
-            f'Pregunta {st.session_state.step} de {TOTAL_PREGUNTAS}'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        # Tarjeta con la pregunta grande
-        st.markdown(
-            f'<div class="wizard-question-card">'
-            f'<p class="wizard-question-text">{pregunta}</p>'
-            f'</div>',
-            unsafe_allow_html=True,
-        )
-
-        # Área de respuesta — el valor se recupera del session_state
         respuesta_actual = st.text_area(
-            label="Su respuesta:",
+            label="Su análisis:",
             value=st.session_state[ss_key],
             placeholder=placeholder,
-            height=165,
-            key=f"ta_{clave}_{st.session_state.step}",
-            label_visibility="collapsed",
+            height=130,
+            label_visibility="collapsed"
         )
-
+        
         st.markdown("<br>", unsafe_allow_html=True)
-
-        # Botones de navegación en dos columnas
         col_back, col_next = st.columns([1, 2])
 
         with col_back:
-            # Wrapper CSS para override del botón rojo → estilo secundario
-            st.markdown('<div class="wizard-back-col">', unsafe_allow_html=True)
-            if st.button("← Atrás", key=f"btn_atras_{st.session_state.step}"):
-                st.session_state[ss_key] = respuesta_actual  # guardar antes de retroceder
+            st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
+            if st.button("Atrás"):
+                st.session_state[ss_key] = respuesta_actual
                 st.session_state.step -= 1
                 st.rerun()
-            st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
 
         with col_next:
-            label_next = "✅ Enviar Diagnóstico" if es_ultima else "Siguiente →"
-            if st.button(label_next, key=f"btn_siguiente_{st.session_state.step}"):
+            if es_ultima:
+                st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
+            
+            label_next = "Finalizar y Enviar" if es_ultima else "Continuar"
+            if st.button(label_next):
                 if not respuesta_actual.strip():
-                    st.warning("Por favor escriba su respuesta antes de continuar.")
+                    st.markdown('<div class="custom-alert" style="margin-top:15px;">⚠️ Por favor, ingrese una respuesta para avanzar.</div>', unsafe_allow_html=True)
                 else:
-                    st.session_state[ss_key] = respuesta_actual  # persistir respuesta
-
+                    st.session_state[ss_key] = respuesta_actual
                     if es_ultima:
-                        # Construir registro y enviar a Google Sheets
                         registro = {
-                            "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                            "nombre_taller":           st.session_state.w_nombre,
-                            "correo":                  st.session_state.w_correo,
-                            "p1_rentabilidad":         st.session_state.r_p1,
-                            "p2_tiempo_operativo":     st.session_state.r_p2,
-                            "p3_normatividad_aiu":     st.session_state.r_p3,
-                            "p4_percepcion_valor":     st.session_state.r_p4,
+                            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "nombre_taller": st.session_state.w_nombre,
+                            "correo": st.session_state.w_correo,
+                            "p1_rentabilidad": st.session_state.r_p1,
+                            "p2_tiempo_operativo": st.session_state.r_p2,
+                            "p3_normatividad_aiu": st.session_state.r_p3,
+                            "p4_percepcion_valor": st.session_state.r_p4,
                             "p5_inteligencia_negocio": st.session_state.r_p5,
                         }
-                        with st.spinner("Guardando en Google Sheets…"):
-                            exito = guardar_registro(registro)
-
-                        if exito:
-                            st.toast("¡Diagnóstico enviado con éxito! 🎉", icon="✅")
-                            st.balloons()
-                            st.session_state.enviado = True
-                            st.rerun()
+                        with st.spinner("Asegurando datos..."):
+                            if guardar_registro(registro):
+                                st.session_state.enviado = True
+                                st.rerun()
                     else:
                         st.session_state.step += 1
                         st.rerun()
+            
+            if es_ultima:
+                st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 
-    # Footer visible en todos los pasos del wizard
-    st.markdown(
-        '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
-        'Barranquilla, Colombia · Investigación Académica</div>',
-        unsafe_allow_html=True,
-    )
+    st.markdown('<div class="minimal-footer">Protegido por Ley 1581 (Habeas Data) · Uso Académico<br>Universidad de la Costa (CUC) · Barranquilla</div>', unsafe_allow_html=True)
