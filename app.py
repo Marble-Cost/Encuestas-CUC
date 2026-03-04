@@ -114,6 +114,22 @@ section.main,
     display: none !important;
 }
 
+/* ══ OCULTAR TOOLBAR NATIVA DE STREAMLIT ══
+   Elimina el menú de los 3 puntos (Share, Print, modo claro/oscuro, etc.)
+   el botón de Deploy y el header superior completo.            */
+#MainMenu                          { display: none !important; }
+header[data-testid="stHeader"]     { display: none !important; }
+[data-testid="stToolbar"]          { display: none !important; }
+[data-testid="stDecoration"]       { display: none !important; }
+[data-testid="stStatusWidget"]     { display: none !important; }
+.stDeployButton                    { display: none !important; }
+button[title="View app in Streamlit Community Cloud"] { display: none !important; }
+/* Compensar el espacio que dejaba el header */
+.stApp > header                    { height: 0 !important; }
+[data-testid="stMainBlockContainer"] {
+    padding-top: 20px !important;
+}
+
 /* Centrar y limitar ancho (feel móvil) */
 [data-testid="stMainBlockContainer"] {
     max-width: 700px !important;
