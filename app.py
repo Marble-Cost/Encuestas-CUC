@@ -1,11 +1,13 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-import os
 from datetime import datetime
+import base64
+import os
 
-# ─────────────────────────────────────────────
-#  CONFIGURACIÓN DE PÁGINA
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+#  CONFIGURACIÓN DE PÁGINA  ← debe ser el primer comando Streamlit
+# ══════════════════════════════════════════════════════════════════
 st.set_page_config(
     page_title="Diagnóstico Operativo · CUC",
     page_icon="🔬",
@@ -13,12 +15,13 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
 #  CONSTANTES
-# ─────────────────────────────────────────────
-CSV_PATH = "base_diagnostico.csv"
+# ══════════════════════════════════════════════════════════════════
 ADMIN_PASSWORD = "Admin123"
+LOGO_PATH      = "logo_cuc.png"
 
+# Encabezados exactos que debe tener la fila 1 de la hoja de Google Sheets
 COLUMNAS = [
     "timestamp",
     "nombre_taller",
@@ -58,211 +61,429 @@ PREGUNTAS = [
     ),
 ]
 
-# ─────────────────────────────────────────────
-#  PALETA CUC  (extraída del logo adjunto)
-#  Rojo institucional: #E3000F  →  rojo vivo CUC
-#  Rojo oscuro:        #B3000B
-#  Rojo claro:         #FF3341
-#  Rojo pálido:        #FDEDED
-#  Gris oscuro texto:  #1E1E1E
-#  Blanco fondo:       #FFFFFF
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+#  CSS — COMPLETAMENTE ADAPTATIVO AL TEMA (CLARO / OSCURO)
+#
+#  Principios aplicados:
+#  1. CERO colores de fondo hardcodeados en tarjetas o body.
+#     Todos los fondos usan var(--background-color) y
+#     var(--secondary-background-color), las variables nativas
+#     que Streamlit actualiza al cambiar de tema.
+#  2. Los colores de texto usan var(--text-color) para adaptarse.
+#  3. El logo JPG con fondo negro usa mix-blend-mode: multiply en
+#     modo claro → el fondo negro desaparece; en modo oscuro se
+#     desactiva para que el logo se vea con normalidad.
+#  4. El selector de fuente está acotado al contenido de la app,
+#     no a los menús nativos de Streamlit, para evitar overflow.
+# ══════════════════════════════════════════════════════════════════
 CSS = """
 <style>
 /* ── Google Fonts ── */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,300;0,400;0,600;0,700;0,800;1,300;1,400&display=swap');
 
-/* ── Variables ── */
+/* ── Variables CUC: SOLO colores de marca, nunca fondos fijos ── */
 :root {
-    --cuc-red:        #E3000F;
-    --cuc-red-dark:   #B3000B;
-    --cuc-red-light:  #FF3341;
-    --cuc-red-pale:   #FDEDED;
-    --text-dark:      #1E1E1E;
-    --text-mid:       #555555;
-    --bg-white:       #FFFFFF;
-    --bg-light:       #F8F4F4;
-    --border-light:   #F0D0D0;
-    --success:        #1A7A4A;
-    --success-bg:     #E8F5EE;
-    --warning-bg:     #FFF3E0;
-    --warning:        #E65100;
+    --cuc-red:      #E3000F;
+    --cuc-red-dark: #B3000B;
+    --cuc-red-a08:  rgba(227, 0, 15, 0.08);
+    --cuc-red-a18:  rgba(227, 0, 15, 0.18);
+    --cuc-red-a35:  rgba(227, 0, 15, 0.35);
+    --success:      #16A34A;
+    --success-a10:  rgba(22, 163, 74, 0.10);
+    --warning:      #D97706;
+    --warning-a10:  rgba(217, 119, 6, 0.10);
+    --border-muted: rgba(127, 127, 127, 0.20);
 }
 
-/* ── Reset global ── */
-/* Aplicar Montserrat solo al contenido de la app, NO a los elementos
-   nativos de Streamlit (toolbar, menús, dropdowns del sistema). Evita
-   que el texto del menú de opciones se desborde de su contenedor.     */
-html, body,
+/* ── Fuente aplicada SOLO al contenido de la app.
+   Excluye menús nativos de Streamlit (toolbar, dropdowns)
+   para evitar que el texto de esos elementos se desborde. ── */
 .stApp,
 [data-testid="stMainBlockContainer"],
 [data-testid="stVerticalBlock"],
 [data-testid="stHorizontalBlock"],
 .stTextInput, .stTextArea, .stButton,
-.stDownloadButton, .stMetric, .stDataFrame,
-.stMarkdown, .stCaption, .stAlert {
+.stDownloadButton, .stMarkdown,
+.stMetric, .stDataFrame, .stCaption {
     font-family: 'Montserrat', sans-serif;
-    color: var(--text-dark);
 }
 
-/* ── Fondo general ── */
+/* ── Fondo de la app: variable nativa de Streamlit ── */
 .stApp {
-    background: linear-gradient(160deg, #FDF6F6 0%, #F8F4F4 60%, #F0E8E8 100%);
-    min-height: 100vh;
+    background-color: var(--background-color) !important;
 }
 
-/* ── Header institucional ── */
-.header-institucional {
+/* ════════════════════════════════════════════
+   HEADER — grid responsivo + logo blend
+════════════════════════════════════════════ */
+.cuc-header {
+    display: grid;
+    grid-template-columns: 175px 1fr;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 18px;
+    border-bottom: 3px solid var(--cuc-red);
+    margin-bottom: 28px;
+}
+
+/* En móvil: apilar centrado sin desproporción */
+@media (max-width: 520px) {
+    .cuc-header {
+        grid-template-columns: 1fr;
+        gap: 12px;
+        text-align: center;
+    }
+    .logo-wrap { justify-content: center; }
+    .logo-wrap img { max-width: 120px; }
+}
+
+.logo-wrap {
     display: flex;
     align-items: center;
-    gap: 18px;
-    padding: 24px 0 8px 0;
-    border-bottom: 3px solid var(--cuc-red);
-    margin-bottom: 32px;
 }
-.header-institucional img {
-    height: 52px;
+
+.logo-wrap img {
+    width: 100%;
+    max-width: 175px;
+    height: auto;
     object-fit: contain;
+    display: block;
+    border-radius: 4px;
+    /* MODO CLARO: el negro del JPG desaparece fundiéndose con el fondo blanco */
+    mix-blend-mode: multiply;
+    transition: mix-blend-mode 0.2s;
 }
-.header-text h1 {
+
+/* MODO OSCURO: desactivar blend para que el logo se vea normal */
+@media (prefers-color-scheme: dark) {
+    .logo-wrap img { mix-blend-mode: normal; }
+}
+/* Streamlit inyecta data-theme en el body según el tema activo */
+[data-theme="dark"]  .logo-wrap img { mix-blend-mode: normal   !important; }
+[data-theme="light"] .logo-wrap img { mix-blend-mode: multiply !important; }
+
+.header-text h2 {
     font-family: 'Montserrat', sans-serif;
-    font-size: 1.45rem;
+    font-size: clamp(1.05rem, 3vw, 1.45rem);
     font-weight: 800;
-    color: var(--cuc-red-dark);
-    margin: 0;
+    color: var(--cuc-red);
+    margin: 0 0 4px 0;
     line-height: 1.2;
 }
-.header-text p {
-    font-size: 0.78rem;
-    color: var(--text-mid);
-    margin: 2px 0 0 0;
-    font-weight: 300;
-    letter-spacing: 0.04em;
+.header-text .header-sub {
+    font-size: 0.70rem;
+    color: var(--text-color);
+    opacity: 0.50;
+    margin: 0;
+    font-weight: 500;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
 }
 
-/* ── Tarjeta contenedor ── */
-.card {
-    background: var(--bg-white);
-    border: 1px solid var(--border-light);
-    border-radius: 12px;
-    padding: 32px 36px;
-    margin-bottom: 24px;
-    box-shadow: 0 4px 24px rgba(227, 0, 15, 0.07);
+/* ════════════════════════════════════════════
+   BANNER INTRODUCTORIO — fondo adaptativo
+════════════════════════════════════════════ */
+.banner-intro {
+    background: var(--cuc-red-a08);
+    border: 1px solid var(--cuc-red-a18);
+    border-left: 4px solid var(--cuc-red);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 22px;
+}
+.banner-intro .b-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--cuc-red);
+    margin: 0 0 6px 0;
+}
+.banner-intro .b-body {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.84rem;
+    color: var(--text-color);
+    opacity: 0.80;
+    margin: 0;
+    line-height: 1.65;
 }
 
-/* ── Aviso de privacidad ── */
+/* ════════════════════════════════════════════
+   SECTION LABEL (cabecera de sección)
+════════════════════════════════════════════ */
+.section-label {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--cuc-red);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--cuc-red-a18);
+    margin-bottom: 16px;
+    margin-top: 8px;
+}
+
+/* ════════════════════════════════════════════
+   AVISO PRIVACIDAD — fondo adaptativo
+════════════════════════════════════════════ */
 .privacy-notice {
-    background: var(--cuc-red-pale);
-    border-left: 4px solid var(--cuc-red);
+    background: var(--cuc-red-a08);
+    border-left: 3px solid var(--cuc-red-dark);
     border-radius: 0 8px 8px 0;
-    padding: 12px 16px;
+    padding: 10px 14px;
     margin: 4px 0 20px 0;
 }
 .privacy-notice p {
-    font-size: 0.78rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
     font-style: italic;
-    color: var(--cuc-red-dark);
+    color: var(--text-color);
+    opacity: 0.65;
     margin: 0;
-    line-height: 1.5;
+    line-height: 1.6;
 }
 
-/* ── Alerta duplicado ── */
+/* ════════════════════════════════════════════
+   LABELS DE CAMPOS — color adaptativo
+════════════════════════════════════════════ */
+.stTextInput label,
+.stTextArea label,
+.stPasswordInput label {
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 1.05rem !important;
+    line-height: 1.5 !important;
+    margin-bottom: 6px !important;
+    color: var(--text-color) !important;
+}
+
+/* ════════════════════════════════════════════
+   INPUTS — fondo y borde adaptativos
+════════════════════════════════════════════ */
+.stTextInput input,
+.stTextArea textarea,
+.stPasswordInput input {
+    background: var(--secondary-background-color) !important;
+    border: 1.5px solid var(--border-muted) !important;
+    border-radius: 9px !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 0.95rem !important;
+    color: var(--text-color) !important;
+    padding: 10px 14px !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
+}
+.stTextInput input:focus,
+.stTextArea textarea:focus,
+.stPasswordInput input:focus {
+    border-color: var(--cuc-red) !important;
+    box-shadow: 0 0 0 3px var(--cuc-red-a18) !important;
+    outline: none !important;
+}
+
+/* Espaciado entre preguntas */
+div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
+    margin-bottom: 28px !important;
+}
+.stTextArea { margin-bottom: 24px !important; }
+
+/* ════════════════════════════════════════════
+   BOTÓN PRINCIPAL — rojo CUC
+════════════════════════════════════════════ */
+.stButton > button {
+    background: var(--cuc-red) !important;
+    color: #FFFFFF !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    letter-spacing: 0.03em !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 0.85rem 2.5rem !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    box-shadow: 0 5px 20px var(--cuc-red-a35) !important;
+    transition: background 0.2s, transform 0.12s, box-shadow 0.2s !important;
+    margin-top: 8px !important;
+}
+.stButton > button:hover {
+    background: var(--cuc-red-dark) !important;
+    box-shadow: 0 7px 26px rgba(227, 0, 15, 0.50) !important;
+    transform: translateY(-2px) !important;
+}
+.stButton > button:active { transform: translateY(0) !important; }
+
+/* ════════════════════════════════════════════
+   BOTÓN DESCARGA
+════════════════════════════════════════════ */
+.stDownloadButton > button {
+    background: var(--cuc-red) !important;
+    color: #FFFFFF !important;
+    font-family: 'Montserrat', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.95rem !important;
+    border: none !important;
+    border-radius: 8px !important;
+    padding: 0.65rem 2rem !important;
+    width: 100% !important;
+    box-shadow: 0 4px 14px var(--cuc-red-a35) !important;
+    transition: all 0.2s !important;
+}
+.stDownloadButton > button:hover {
+    background: var(--cuc-red-dark) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(227, 0, 15, 0.45) !important;
+}
+
+/* ════════════════════════════════════════════
+   ALERTAS — fondos semitransparentes adaptativos
+   (sin ningún color de fondo fijo como #FFF3E0)
+════════════════════════════════════════════ */
+.alert-success {
+    background: var(--success-a10);
+    border: 1.5px solid rgba(22, 163, 74, 0.30);
+    border-radius: 12px;
+    padding: 22px 24px;
+    text-align: center;
+    margin-top: 14px;
+}
+.alert-success .as-icon {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 8px;
+}
+.alert-success .as-title {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--success);
+    font-weight: 700;
+    font-size: 1.05rem;
+    margin: 0 0 6px;
+}
+.alert-success .as-body {
+    font-family: 'Montserrat', sans-serif;
+    color: var(--text-color);
+    opacity: 0.70;
+    font-weight: 400;
+    font-size: 0.84rem;
+    margin: 0;
+    line-height: 1.55;
+}
+
 .alert-duplicate {
-    background: var(--warning-bg);
-    border: 1.5px solid var(--warning);
-    border-radius: 10px;
-    padding: 20px 24px;
+    background: var(--warning-a10);
+    border: 1.5px solid rgba(217, 119, 6, 0.30);
+    border-radius: 12px;
+    padding: 20px 22px;
     text-align: center;
 }
 .alert-duplicate p {
+    font-family: 'Montserrat', sans-serif;
     color: var(--warning);
     font-weight: 600;
-    font-size: 1rem;
+    font-size: 0.95rem;
     margin: 0;
+    line-height: 1.55;
 }
 
-/* ── Alerta éxito ── */
-.alert-success {
-    background: var(--success-bg);
-    border: 1.5px solid var(--success);
-    border-radius: 10px;
-    padding: 20px 24px;
-    text-align: center;
-    margin-top: 16px;
+/* ════════════════════════════════════════════
+   SIDEBAR — panel admin con fondo institucional fijo.
+   Se mantiene oscuro intencionalmente: es un panel
+   de acceso seguro, no debe seguir el tema público.
+════════════════════════════════════════════ */
+[data-testid="stSidebar"] {
+    background: linear-gradient(175deg, #1A0505 0%, #3D0B0B 100%) !important;
 }
-.alert-success p {
-    color: var(--success);
-    font-weight: 600;
-    font-size: 1rem;
-    margin: 0;
-}
-
-/* ── Divider decorativo ── */
-.divider {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin: 28px 0 20px;
-}
-.divider span {
-    font-family: 'Montserrat', sans-serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: var(--cuc-red);
-}
-.divider::before, .divider::after {
-    content: '';
-    flex: 1;
-    height: 1px;
-    background: var(--border-light);
-}
-
-/* ── Labels de campos ── */
-.stTextInput label, .stTextArea label {
-    font-weight: 600 !important;
-    color: var(--text-dark) !important;
-    font-size: 1.15rem !important;
+[data-testid="stSidebar"] .stMarkdown p,
+[data-testid="stSidebar"] .stMarkdown h3,
+[data-testid="stSidebar"] small {
+    color: #F0DADA !important;
     font-family: 'Montserrat', sans-serif !important;
-    line-height: 1.5 !important;
-    margin-bottom: 8px !important;
 }
-
-/* ── Espaciado entre preguntas ── */
-div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
-    margin-bottom: 32px !important;
+[data-testid="stSidebar"] .stTextInput label {
+    color: #F0DADA !important;
+    font-size: 0.88rem !important;
+    font-family: 'Montserrat', sans-serif !important;
 }
-.stTextArea {
-    margin-bottom: 28px !important;
-}
-
-/* ── Inputs ── */
-.stTextInput input, .stTextArea textarea {
-    border: 1.5px solid var(--border-light) !important;
+[data-testid="stSidebar"] .stTextInput input {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border-color: rgba(255, 255, 255, 0.18) !important;
+    color: #FFFFFF !important;
     border-radius: 8px !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-size: 1rem !important;
-    transition: border-color 0.2s;
-    padding: 10px 14px !important;
-}
-.stTextInput input:focus, .stTextArea textarea:focus {
-    border-color: var(--cuc-red) !important;
-    box-shadow: 0 0 0 3px rgba(227, 0, 15, 0.12) !important;
 }
 
-/* ── Contener el menú nativo de Streamlit (toolbar / options menu) ──
-   Cuando el usuario abre el menú de 3 puntos, Streamlit renderiza un
-   popover. Nos aseguramos de que su contenedor no desborde y que la
-   fuente no quede sobreescrita por nuestro CSS global.               */
-[data-testid="stToolbarActionButtonTooltip"],
-[data-testid="stActionButtonTooltip"],
-div[class*="Dropdown"],
-div[class*="dropdown"],
-ul[class*="menu"],
-li[class*="menu"],
-[role="menu"],
-[role="menuitem"],
-[role="option"] {
+/* ════════════════════════════════════════════
+   MÉTRICAS ADMIN — fondo adaptativo
+════════════════════════════════════════════ */
+[data-testid="metric-container"] {
+    background: var(--secondary-background-color) !important;
+    border: 1px solid var(--cuc-red-a18) !important;
+    border-radius: 10px !important;
+    padding: 16px !important;
+}
+[data-testid="stMetricValue"] {
+    font-family: 'Montserrat', sans-serif !important;
+    color: var(--cuc-red) !important;
+    font-size: 2.2rem !important;
+    font-weight: 800 !important;
+}
+[data-testid="stMetricLabel"] p {
+    color: var(--text-color) !important;
+    opacity: 0.55 !important;
+    font-size: 0.72rem !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.06em !important;
+}
+
+/* ════════════════════════════════════════════
+   DATAFRAME — borde adaptativo
+════════════════════════════════════════════ */
+.stDataFrame {
+    border: 1px solid var(--border-muted) !important;
+    border-radius: 10px !important;
+    overflow: hidden !important;
+}
+
+/* ════════════════════════════════════════════
+   BADGE ADMIN
+════════════════════════════════════════════ */
+.admin-badge {
+    display: inline-block;
+    background: var(--cuc-red);
+    color: #FFFFFF;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+}
+
+/* ════════════════════════════════════════════
+   FOOTER — color y borde adaptativos
+════════════════════════════════════════════ */
+.footer-cuc {
+    font-family: 'Montserrat', sans-serif;
+    text-align: center;
+    padding: 28px 0 14px;
+    font-size: 0.70rem;
+    border-top: 1px solid var(--border-muted);
+    margin-top: 36px;
+    color: var(--text-color);
+    opacity: 0.42;
+}
+.footer-cuc strong {
+    color: var(--cuc-red);
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════════
+   MENÚ NATIVO STREAMLIT — prevenir desbordamiento
+════════════════════════════════════════════ */
+[role="menu"], [role="menuitem"], [role="option"],
+div[class*="dropdown"], ul[class*="menu"], li[class*="menu"],
+[data-testid="stToolbarActionButtonTooltip"] {
     font-family: inherit !important;
     white-space: nowrap !important;
     overflow: hidden !important;
@@ -271,157 +492,82 @@ li[class*="menu"],
     box-sizing: border-box !important;
 }
 
-/* ── Botón principal ── */
-.stButton > button {
-    background: var(--cuc-red) !important;
-    color: white !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 700 !important;
-    font-size: 1.15rem !important;
-    letter-spacing: 0.04em !important;
-    border: none !important;
-    border-radius: 10px !important;
-    padding: 1rem 3rem !important;
-    min-width: 280px !important;
-    width: 100% !important;
-    transition: background 0.2s, transform 0.1s, box-shadow 0.2s !important;
-    box-shadow: 0 6px 22px rgba(227, 0, 15, 0.40) !important;
-    margin-top: 12px !important;
-}
-.stButton > button:hover {
-    background: var(--cuc-red-dark) !important;
-    box-shadow: 0 8px 28px rgba(227, 0, 15, 0.50) !important;
-    transform: translateY(-2px) !important;
-}
-.stButton > button:active {
-    transform: translateY(0) !important;
-}
-
-/* ── Botón de descarga ── */
-.stDownloadButton > button {
-    background: var(--cuc-red) !important;
-    color: white !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    border: none !important;
-    border-radius: 8px !important;
-    padding: 0.65rem 2rem !important;
-    box-shadow: 0 4px 14px rgba(227, 0, 15, 0.30) !important;
-    transition: all 0.2s !important;
-}
-.stDownloadButton > button:hover {
-    background: var(--cuc-red-dark) !important;
-    box-shadow: 0 6px 20px rgba(227, 0, 15, 0.40) !important;
-    transform: translateY(-1px) !important;
-}
-
-/* ── Sidebar ── */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #2C1010 0%, var(--cuc-red-dark) 100%);
-}
-[data-testid="stSidebar"] * {
-    color: #F5E8E8 !important;
-}
-[data-testid="stSidebar"] .stTextInput input {
-    background: rgba(255,255,255,0.1) !important;
-    border-color: rgba(255,255,255,0.25) !important;
-    color: white !important;
-}
-[data-testid="stSidebar"] label {
-    color: #F5E8E8 !important;
-    font-weight: 500 !important;
-}
-
-/* ── Métricas admin ── */
-[data-testid="metric-container"] {
-    background: var(--bg-white);
-    border: 1px solid var(--border-light);
-    border-radius: 10px;
-    padding: 16px;
-    box-shadow: 0 2px 10px rgba(227, 0, 15, 0.08);
-}
-[data-testid="metric-container"] [data-testid="stMetricValue"] {
-    color: var(--cuc-red) !important;
-    font-family: 'Montserrat', sans-serif !important;
-    font-size: 2.4rem !important;
-    font-weight: 800 !important;
-}
-
-/* ── Dataframe ── */
-.stDataFrame {
-    border: 1px solid var(--border-light) !important;
-    border-radius: 10px !important;
-    overflow: hidden !important;
-}
-
-/* ── Footer ── */
-.footer-cuc {
-    text-align: center;
-    padding: 32px 0 16px;
-    color: var(--text-mid);
-    font-size: 0.75rem;
-    border-top: 1px solid var(--border-light);
-    margin-top: 40px;
-}
-.footer-cuc strong { color: var(--cuc-red); }
-
-/* ── Número de pregunta ── */
-.q-label {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--cuc-red);
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin-bottom: 2px;
-}
-
-/* ── Badge admin ── */
-.admin-badge {
-    display: inline-block;
-    background: var(--cuc-red);
-    color: white;
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 3px 10px;
-    border-radius: 20px;
-    margin-bottom: 12px;
-}
+/* HR */
+hr { border-color: var(--border-muted) !important; }
 </style>
 """
 
-# ─────────────────────────────────────────────
-#  HELPERS CSV
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+#  INYECTAR CSS
+# ══════════════════════════════════════════════════════════════════
+st.markdown(CSS, unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════
+#  CONEXIÓN A GOOGLE SHEETS
+#
+#  Requiere .streamlit/secrets.toml con la sección [connections.gsheets].
+#  Ver README.md para instrucciones de configuración completas.
+# ══════════════════════════════════════════════════════════════════
+@st.cache_resource
+def get_conn() -> GSheetsConnection:
+    """Retorna la conexión cacheada a Google Sheets."""
+    return st.connection("gsheets", type=GSheetsConnection)
+
+
 def cargar_datos() -> pd.DataFrame:
-    if os.path.exists(CSV_PATH):
-        return pd.read_csv(CSV_PATH)
-    return pd.DataFrame(columns=COLUMNAS)
+    """
+    Lee todos los registros desde Google Sheets.
+    ttl=60 → refresca el caché cada 60 segundos sin bloquear la app.
+    """
+    try:
+        conn = get_conn()
+        df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
+        df = df.dropna(how="all")
+        if df.empty:
+            return pd.DataFrame(columns=COLUMNAS)
+        df.columns = COLUMNAS[: len(df.columns)]
+        return df
+    except Exception as e:
+        st.error(f"⚠️ Error al leer Google Sheets: {e}")
+        return pd.DataFrame(columns=COLUMNAS)
 
 
 def correo_existe(df: pd.DataFrame, correo: str) -> bool:
-    if df.empty:
+    """Verifica duplicados consultando los datos de Google Sheets."""
+    if df.empty or "correo" not in df.columns:
         return False
-    return correo.strip().lower() in df["correo"].str.strip().str.lower().values
+    return correo.strip().lower() in (
+        df["correo"].dropna().str.strip().str.lower().values
+    )
 
 
-def guardar_registro(registro: dict):
-    df = cargar_datos()
-    nuevo = pd.DataFrame([registro])
-    df = pd.concat([df, nuevo], ignore_index=True)
-    df.to_csv(CSV_PATH, index=False, encoding="utf-8-sig")
+def guardar_registro(registro: dict) -> bool:
+    """
+    Añade una nueva fila a Google Sheets usando conn.update().
+    No escribe ningún archivo local.
+    """
+    try:
+        conn = get_conn()
+        df_actual = cargar_datos()
+        nueva_fila = pd.DataFrame([registro])
+        df_nuevo = pd.concat([df_actual, nueva_fila], ignore_index=True)
+        conn.update(data=df_nuevo)          # ← escribe directo en la nube
+        st.cache_resource.clear()           # fuerza lectura fresca en el próximo cargar_datos()
+        return True
+    except Exception as e:
+        st.error(f"⚠️ Error al guardar en Google Sheets: {e}")
+        return False
 
 
-# ─────────────────────────────────────────────
-#  INYECCIÓN DE ESTILOS
-# ─────────────────────────────────────────────
-st.markdown(CSS, unsafe_allow_html=True)
+# ══════════════════════════════════════════════════════════════════
+#  SESSION STATE — evita que el formulario reaparezca tras st.rerun()
+# ══════════════════════════════════════════════════════════════════
+if "enviado" not in st.session_state:
+    st.session_state.enviado = False
 
-# ─────────────────────────────────────────────
-#  SIDEBAR – ACCESO ADMIN
-# ─────────────────────────────────────────────
+# ══════════════════════════════════════════════════════════════════
+#  SIDEBAR — ACCESO ADMIN (siempre visible al abrir el panel lateral)
+# ══════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("### 🔐 Acceso Administrador")
     st.markdown("---")
@@ -435,143 +581,144 @@ with st.sidebar:
         st.error("Contraseña incorrecta.")
     st.markdown("---")
     st.markdown(
-        "<small style='opacity:0.6'>Panel de administración CUC · Investigación académica</small>",
+        "<small style='opacity:0.45;'>Panel de administración CUC · Investigación académica</small>",
         unsafe_allow_html=True,
     )
 
-es_admin = pwd_input == ADMIN_PASSWORD
+es_admin = (pwd_input == ADMIN_PASSWORD)
 
-# ─────────────────────────────────────────────
-#  LOGO  (desde archivo local)
-# ─────────────────────────────────────────────
-LOGO_PATH = "logo_cuc.png"
-
-def header_html(logo_src: str) -> str:
-    return f"""
-    <div class="header-institucional">
-        <img src="{logo_src}" alt="Logo CUC" style="max-width:140px;height:auto;object-fit:contain;">
-        <div class="header-text">
-            <h1>Diagnóstico Operativo</h1>
-            <p>Transformadores de Superficies · Investigación CUC 2026</p>
-        </div>
-    </div>
-    """
-
-# Mostrar logo con st.image (Streamlit lo maneja de forma nativa)
-col_logo, col_title = st.columns([1, 3])
-with col_logo:
+# ══════════════════════════════════════════════════════════════════
+#  HEADER — logo con mix-blend + grid responsivo
+# ══════════════════════════════════════════════════════════════════
+def render_header() -> None:
+    """Renderiza el header institucional con logo y título."""
+    logo_tag = ""
     if os.path.exists(LOGO_PATH):
-        st.image(LOGO_PATH, width=180)
-with col_title:
-    st.markdown("""
-    <div style='padding-top:10px'>
-        <h2 style='font-family:"Montserrat",sans-serif; color:#E3000F; margin:0; font-size:1.5rem; font-weight:800;'>
-            Diagnóstico Operativo
-        </h2>
-        <p style='color:#666; font-size:0.8rem; letter-spacing:0.06em; text-transform:uppercase; margin:4px 0 0; font-family:"Montserrat",sans-serif;'>
-            Transformadores de Superficies · Investigación CUC 2026
-        </p>
+        ext  = LOGO_PATH.rsplit(".", 1)[-1].lower()
+        mime = "image/jpeg" if ext in ("jpg", "jpeg") else "image/png"
+        with open(LOGO_PATH, "rb") as f:
+            b64 = base64.b64encode(f.read()).decode()
+        logo_tag = f'<img src="data:{mime};base64,{b64}" alt="Logo Universidad de la Costa CUC">'
+
+    st.markdown(f"""
+    <div class="cuc-header">
+        <div class="logo-wrap">{logo_tag}</div>
+        <div class="header-text">
+            <h2>Diagnóstico Operativo</h2>
+            <p class="header-sub">Transformadores de Superficies · Investigación CUC 2026</p>
+        </div>
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown("<hr style='border:none; border-top:3px solid #E3000F; margin:8px 0 28px;'>", unsafe_allow_html=True)
 
-
-# ═════════════════════════════════════════════
-#  VISTA 2 – PANEL DE ADMINISTRACIÓN
-# ═════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
+#  VISTA 2 — PANEL DE ADMINISTRACIÓN
+# ══════════════════════════════════════════════════════════════════
 if es_admin:
+    render_header()
     st.markdown('<div class="admin-badge">🛡 Panel de Administración</div>', unsafe_allow_html=True)
     st.markdown("## 📊 Datos Recolectados")
 
-    df = cargar_datos()
-    total = len(df)
+    with st.spinner("Cargando datos desde Google Sheets…"):
+        df = cargar_datos()
+
+    total          = len(df)
+    correos_unicos = df["correo"].nunique() if not df.empty else 0
+    ultimo         = "—"
+    if not df.empty and "timestamp" in df.columns:
+        valores = df["timestamp"].dropna()
+        ultimo  = str(valores.iloc[-1])[:10] if not valores.empty else "—"
 
     col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total de registros", total)
-    with col2:
-        correos_unicos = df["correo"].nunique() if not df.empty else 0
-        st.metric("Correos únicos", correos_unicos)
-    with col3:
-        if not df.empty and "timestamp" in df.columns:
-            ultimo = df["timestamp"].iloc[-1][:10] if pd.notna(df["timestamp"].iloc[-1]) else "—"
-        else:
-            ultimo = "—"
-        st.metric("Último registro", ultimo)
+    with col1: st.metric("Total de registros", total)
+    with col2: st.metric("Correos únicos", correos_unicos)
+    with col3: st.metric("Último registro", ultimo)
 
     st.markdown("---")
 
     if df.empty:
-        st.info("Aún no hay registros en la base de datos.")
+        st.info("Aún no hay registros en Google Sheets.")
     else:
         st.markdown("### 📋 Tabla de Respuestas")
-
-        # Renombrar columnas para mayor legibilidad
-        df_display = df.copy()
-        df_display.columns = [
-            "Fecha/Hora", "Nombre del Taller", "Correo",
-            "P1 – Rentabilidad",
-            "P2 – Tiempo Operativo",
-            "P3 – Normatividad AIU",
-            "P4 – Percepción de Valor",
-            "P5 – Inteligencia de Negocio",
-        ]
+        df_display = df.rename(columns={
+            "timestamp":               "Fecha/Hora",
+            "nombre_taller":           "Nombre del Taller",
+            "correo":                  "Correo",
+            "p1_rentabilidad":         "P1 – Rentabilidad",
+            "p2_tiempo_operativo":     "P2 – Tiempo Operativo",
+            "p3_normatividad_aiu":     "P3 – Normatividad AIU",
+            "p4_percepcion_valor":     "P4 – Percepción de Valor",
+            "p5_inteligencia_negocio": "P5 – Inteligencia de Negocio",
+        })
         st.dataframe(df_display, use_container_width=True, height=420)
 
-        # Descarga CSV limpio con BOM para Power BI
-        csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
         st.markdown("---")
         st.markdown("### ⬇️ Exportar para Business Intelligence")
+        csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
         st.download_button(
             label="📥  Descargar CSV para Power BI / Excel",
             data=csv_bytes,
-            file_name=f"diagnostico_superficies_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            file_name=f"diagnostico_cuc_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
-            use_container_width=False,
+            use_container_width=True,
         )
         st.caption(
-            "El archivo se exporta con codificación **UTF-8 con BOM**, "
-            "compatible con Power BI, Excel y Tableau sin problemas de caracteres especiales."
+            "Exportado con **UTF-8 con BOM** — compatible con Power BI, "
+            "Excel y Tableau sin errores de caracteres especiales."
         )
 
     st.markdown(
-        '<div class="footer-cuc">Panel de Administración · <strong>Universidad de la Costa (CUC)</strong> · Uso interno exclusivo</div>',
+        '<div class="footer-cuc">Panel de Administración · '
+        '<strong>Universidad de la Costa (CUC)</strong> · Uso interno exclusivo</div>',
         unsafe_allow_html=True,
     )
 
 
-# ═════════════════════════════════════════════
-#  VISTA 1 – INTERFAZ DEL CLIENTE
-# ═════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════
+#  VISTA 1 — INTERFAZ DEL CLIENTE
+# ══════════════════════════════════════════════════════════════════
 else:
-    # Introducción
+    render_header()
+
+    # ── Pantalla de confirmación: se muestra tras envío exitoso ──
+    if st.session_state.enviado:
+        st.markdown("""
+        <div class="alert-success">
+            <span class="as-icon">✅</span>
+            <p class="as-title">¡Diagnóstico enviado con éxito!</p>
+            <p class="as-body">Gracias por contribuir a la investigación de la
+            Universidad de la Costa. Su información ha sido registrada de forma
+            segura en la nube.</p>
+        </div>
+        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
+            'Barranquilla, Colombia · Investigación Académica</div>',
+            unsafe_allow_html=True,
+        )
+        st.stop()
+
+    # ── Banner introductorio ──
     st.markdown("""
-    <div style='background:#FDEDED; border-radius:10px; padding:18px 22px; margin-bottom:24px; border:1px solid #F0D0D0;'>
-        <p style='margin:0; font-size:0.95rem; color:#B3000B; font-weight:600;'>
-            🔬 Investigación Académica – Universidad de la Costa
-        </p>
-        <p style='margin:6px 0 0; font-size:0.88rem; color:#555; line-height:1.6;'>
-            Este diagnóstico hace parte de un estudio sobre procesos operativos en talleres de transformación 
-            de superficies. Sus respuestas son fundamentales para el avance de la investigación.
+    <div class="banner-intro">
+        <p class="b-title">🔬 Investigación Académica · Universidad de la Costa</p>
+        <p class="b-body">
+            Este diagnóstico hace parte de un estudio sobre procesos operativos y comerciales
+            en talleres de transformación de superficies. Sus respuestas son fundamentales
+            para el avance de la investigación.
             <strong>El proceso toma menos de 5 minutos.</strong>
         </p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Campos de ingreso ──
-    st.markdown("""
-    <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#E3000F; 
-         font-weight:700; margin-bottom:14px; padding-bottom:6px; border-bottom:1px solid #F0D0D0;'>
-        📝 Datos de Identificación
-    </div>
-    """, unsafe_allow_html=True)
+    # ── Identificación ──
+    st.markdown('<div class="section-label">📝 Datos de Identificación</div>', unsafe_allow_html=True)
 
     col_a, col_b = st.columns(2)
     with col_a:
         nombre_taller = st.text_input(
             "Nombre del Taller / Negocio *",
-            placeholder="Ej: Taller Pinturas Caribe",
+            placeholder="Ej: Mármoles del Norte",
             key="nombre",
         )
     with col_b:
@@ -581,55 +728,55 @@ else:
             key="correo",
         )
 
-    # Aviso de privacidad
+    # Aviso Habeas Data
     st.markdown("""
     <div class="privacy-notice">
-        <p>
-            🔒 <em>Sus datos están protegidos por la Ley 1581 de 2012 (Habeas Data). 
-            Esta información es recopilada con fines netamente académicos y de validación investigativa 
-            para la Universidad de la Costa (CUC). No será compartida con terceros ni utilizada 
-            para fines comerciales.</em>
-        </p>
+        <p>🔒 <em>Sus datos están protegidos por la Ley 1581 de 2012 (Habeas Data).
+        Esta información es recopilada con fines netamente académicos y de validación
+        investigativa para la Universidad de la Costa (CUC). No será compartida con
+        terceros ni utilizada para fines comerciales.</em></p>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Lógica de duplicados ──
-    if correo:
-        df_actual = cargar_datos()
-        if correo_existe(df_actual, correo):
+    # ── Verificar duplicado leyendo desde Google Sheets ──
+    if correo and "@" in correo:
+        df_check = cargar_datos()
+        if correo_existe(df_check, correo):
             st.markdown("""
             <div class="alert-duplicate">
                 <p>⚠️ Este correo ya ha completado el diagnóstico.<br>
-                <span style='font-weight:400;font-size:0.9rem;'>
+                <span style="font-weight:400;font-size:0.88rem;">
                 ¡Gracias por su valioso aporte a nuestra investigación!</span></p>
             </div>
             """, unsafe_allow_html=True)
+            st.markdown(
+                '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
+                'Barranquilla, Colombia · Investigación Académica</div>',
+                unsafe_allow_html=True,
+            )
             st.stop()
 
-    # ── Formulario de preguntas ──
+    # ── Preguntas del diagnóstico ──
     if nombre_taller and correo:
-        st.markdown("""
-        <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#E3000F; 
-             font-weight:700; margin:28px 0 18px; padding-bottom:6px; border-bottom:1px solid #F0D0D0;'>
-            🗒 Diagnóstico Operativo
-        </div>
-        """, unsafe_allow_html=True)
+        st.markdown(
+            '<div class="section-label" style="margin-top:26px;">🗒 Diagnóstico Operativo</div>',
+            unsafe_allow_html=True,
+        )
 
         respuestas = {}
         for clave, pregunta, placeholder in PREGUNTAS:
             respuestas[clave] = st.text_area(
                 label=pregunta,
                 placeholder=placeholder,
-                height=110,
+                height=115,
                 key=clave,
             )
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Botón de envío
-        if st.button("✅  Enviar Diagnóstico", use_container_width=False, key="btn_enviar"):
-            # Validaciones
+        if st.button("✅  Enviar Diagnóstico", key="btn_enviar"):
             campos_vacios = [k for k, v in respuestas.items() if not v.strip()]
+
             if not nombre_taller.strip():
                 st.error("Por favor ingrese el nombre del taller.")
             elif not correo.strip() or "@" not in correo:
@@ -641,28 +788,32 @@ else:
                 )
             else:
                 registro = {
-                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "nombre_taller": nombre_taller.strip(),
-                    "correo": correo.strip().lower(),
-                    **{k: v.strip() for k, v in respuestas.items()},
+                    "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "nombre_taller":           nombre_taller.strip(),
+                    "correo":                  correo.strip().lower(),
+                    "p1_rentabilidad":         respuestas["p1_rentabilidad"].strip(),
+                    "p2_tiempo_operativo":     respuestas["p2_tiempo_operativo"].strip(),
+                    "p3_normatividad_aiu":     respuestas["p3_normatividad_aiu"].strip(),
+                    "p4_percepcion_valor":     respuestas["p4_percepcion_valor"].strip(),
+                    "p5_inteligencia_negocio": respuestas["p5_inteligencia_negocio"].strip(),
                 }
-                guardar_registro(registro)
-                st.markdown("""
-                <div class="alert-success">
-                    <p>✅ ¡Diagnóstico enviado con éxito!<br>
-                    <span style='font-weight:400;font-size:0.9rem;'>
-                    Gracias por contribuir a la investigación de la Universidad de la Costa. 
-                    Su información ha sido registrada de forma segura.</span></p>
-                </div>
-                """, unsafe_allow_html=True)
-                st.balloons()
+                with st.spinner("Guardando en Google Sheets…"):
+                    exito = guardar_registro(registro)
 
-    elif not nombre_taller and not correo:
-        st.markdown("""
-        <p style='color:#888; font-style:italic; font-size:0.88rem; margin-top:8px;'>
-        👆 Complete los campos de identificación para acceder al formulario de diagnóstico.
-        </p>
-        """, unsafe_allow_html=True)
+                if exito:
+                    # Toast nativo de Streamlit ≥ 1.28 — notificación flotante liviana
+                    st.toast("¡Diagnóstico enviado con éxito! 🎉", icon="✅")
+                    st.balloons()
+                    st.session_state.enviado = True
+                    st.rerun()
+
+    else:
+        st.markdown(
+            "<p style='font-family:Montserrat,sans-serif;font-size:0.85rem;"
+            "font-style:italic;margin-top:6px;opacity:0.45;color:var(--text-color);'>"
+            "👆 Complete los campos de identificación para acceder al formulario.</p>",
+            unsafe_allow_html=True,
+        )
 
     # Footer
     st.markdown(
