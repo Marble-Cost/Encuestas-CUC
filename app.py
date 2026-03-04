@@ -313,6 +313,28 @@ div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
 .stButton > button:active { transform: translateY(0) !important; }
 
 /* ════════════════════════════════════════════
+   BOTÓN ATRÁS (wizard) — override del rojo
+   Se aplica al wrapper .wizard-back-col
+════════════════════════════════════════════ */
+.wizard-back-col .stButton > button {
+    background: var(--secondary-background-color) !important;
+    color: var(--text-color) !important;
+    border: 1.5px solid var(--border-muted) !important;
+    box-shadow: none !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    opacity: 0.75;
+}
+.wizard-back-col .stButton > button:hover {
+    border-color: var(--cuc-red) !important;
+    color: var(--cuc-red) !important;
+    background: var(--secondary-background-color) !important;
+    box-shadow: none !important;
+    transform: none !important;
+    opacity: 1;
+}
+
+/* ════════════════════════════════════════════
    BOTÓN DESCARGA
 ════════════════════════════════════════════ */
 .stDownloadButton > button {
@@ -492,6 +514,42 @@ div[class*="dropdown"], ul[class*="menu"], li[class*="menu"],
     box-sizing: border-box !important;
 }
 
+/* ════════════════════════════════════════════
+   WIZARD — Estilos exclusivos del flujo paso a paso
+════════════════════════════════════════════ */
+
+/* Indicador "Pregunta N de 5" */
+.wizard-step-indicator {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--cuc-red);
+    text-transform: uppercase;
+    letter-spacing: 0.10em;
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Tarjeta contenedora de cada pregunta */
+.wizard-question-card {
+    background: var(--secondary-background-color);
+    border: 1px solid var(--border-muted);
+    border-top: 3px solid var(--cuc-red);
+    border-radius: 14px;
+    padding: 30px 28px 10px;
+    margin-bottom: 18px;
+}
+
+/* Texto de la pregunta grande y legible */
+.wizard-question-text {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--text-color);
+    line-height: 1.55;
+    margin: 0 0 22px 0;
+}
+
 /* HR */
 hr { border-color: var(--border-muted) !important; }
 </style>
@@ -560,10 +618,27 @@ def guardar_registro(registro: dict) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════
-#  SESSION STATE — evita que el formulario reaparezca tras st.rerun()
+#  SESSION STATE
+#  step = 0          → Pantalla de bienvenida (nombre + correo)
+#  step = 1 … 5      → Una pregunta por pantalla (wizard)
+#  enviado = True     → Pantalla de confirmación final
+#  w_nombre / w_correo → Identificación persistida entre pasos
+#  r_p1 … r_p5        → Respuestas temporales (persisten al retroceder)
 # ══════════════════════════════════════════════════════════════════
-if "enviado" not in st.session_state:
-    st.session_state.enviado = False
+_defaults = {
+    "step":     0,
+    "enviado":  False,
+    "w_nombre": "",
+    "w_correo": "",
+    "r_p1":     "",
+    "r_p2":     "",
+    "r_p3":     "",
+    "r_p4":     "",
+    "r_p5":     "",
+}
+for _k, _v in _defaults.items():
+    if _k not in st.session_state:
+        st.session_state[_k] = _v
 
 # ══════════════════════════════════════════════════════════════════
 #  SIDEBAR — ACCESO ADMIN (siempre visible al abrir el panel lateral)
@@ -675,12 +750,24 @@ if es_admin:
 
 
 # ══════════════════════════════════════════════════════════════════
-#  VISTA 1 — INTERFAZ DEL CLIENTE
+#  VISTA 1 — INTERFAZ DEL CLIENTE  (Wizard paso a paso)
 # ══════════════════════════════════════════════════════════════════
 else:
     render_header()
 
-    # ── Pantalla de confirmación: se muestra tras envío exitoso ──
+    # ── Llave de session_state para cada pregunta ─────────────────
+    SS_KEYS = {
+        "p1_rentabilidad":         "r_p1",
+        "p2_tiempo_operativo":     "r_p2",
+        "p3_normatividad_aiu":     "r_p3",
+        "p4_percepcion_valor":     "r_p4",
+        "p5_inteligencia_negocio": "r_p5",
+    }
+    TOTAL_PREGUNTAS = len(PREGUNTAS)
+
+    # ─────────────────────────────────────────────────────────────
+    #  PANTALLA FINAL — confirmación tras envío exitoso
+    # ─────────────────────────────────────────────────────────────
     if st.session_state.enviado:
         st.markdown("""
         <div class="alert-success">
@@ -698,124 +785,163 @@ else:
         )
         st.stop()
 
-    # ── Banner introductorio ──
-    st.markdown("""
-    <div class="banner-intro">
-        <p class="b-title">🔬 Investigación Académica · Universidad de la Costa</p>
-        <p class="b-body">
-            Este diagnóstico hace parte de un estudio sobre procesos operativos y comerciales
-            en talleres de transformación de superficies. Sus respuestas son fundamentales
-            para el avance de la investigación.
-            <strong>El proceso toma menos de 5 minutos.</strong>
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+    # ─────────────────────────────────────────────────────────────
+    #  PASO 0 — Bienvenida + identificación
+    # ─────────────────────────────────────────────────────────────
+    if st.session_state.step == 0:
 
-    # ── Identificación ──
-    st.markdown('<div class="section-label">📝 Datos de Identificación</div>', unsafe_allow_html=True)
+        # Banner introductorio
+        st.markdown("""
+        <div class="banner-intro">
+            <p class="b-title">🔬 Investigación Académica · Universidad de la Costa</p>
+            <p class="b-body">
+                Este diagnóstico hace parte de un estudio sobre procesos operativos y comerciales
+                en talleres de transformación de superficies. Sus respuestas son fundamentales
+                para el avance de la investigación.
+                <strong>El proceso toma menos de 5 minutos.</strong>
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        nombre_taller = st.text_input(
-            "Nombre del Taller / Negocio *",
-            placeholder="Ej: Mármoles del Norte",
-            key="nombre",
-        )
-    with col_b:
-        correo = st.text_input(
-            "Correo Electrónico *",
-            placeholder="ejemplo@correo.com",
-            key="correo",
-        )
+        st.markdown('<div class="section-label">📝 Datos de Identificación</div>', unsafe_allow_html=True)
 
-    # Aviso Habeas Data
-    st.markdown("""
-    <div class="privacy-notice">
-        <p>🔒 <em>Sus datos están protegidos por la Ley 1581 de 2012 (Habeas Data).
-        Esta información es recopilada con fines netamente académicos y de validación
-        investigativa para la Universidad de la Costa (CUC). No será compartida con
-        terceros ni utilizada para fines comerciales.</em></p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Verificar duplicado leyendo desde Google Sheets ──
-    if correo and "@" in correo:
-        df_check = cargar_datos()
-        if correo_existe(df_check, correo):
-            st.markdown("""
-            <div class="alert-duplicate">
-                <p>⚠️ Este correo ya ha completado el diagnóstico.<br>
-                <span style="font-weight:400;font-size:0.88rem;">
-                ¡Gracias por su valioso aporte a nuestra investigación!</span></p>
-            </div>
-            """, unsafe_allow_html=True)
-            st.markdown(
-                '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
-                'Barranquilla, Colombia · Investigación Académica</div>',
-                unsafe_allow_html=True,
+        col_a, col_b = st.columns(2)
+        with col_a:
+            nombre_input = st.text_input(
+                "Nombre del Taller / Negocio *",
+                value=st.session_state.w_nombre,
+                placeholder="Ej: Mármoles del Norte",
+                key="input_nombre_p0",
             )
-            st.stop()
-
-    # ── Preguntas del diagnóstico ──
-    if nombre_taller and correo:
-        st.markdown(
-            '<div class="section-label" style="margin-top:26px;">🗒 Diagnóstico Operativo</div>',
-            unsafe_allow_html=True,
-        )
-
-        respuestas = {}
-        for clave, pregunta, placeholder in PREGUNTAS:
-            respuestas[clave] = st.text_area(
-                label=pregunta,
-                placeholder=placeholder,
-                height=115,
-                key=clave,
+        with col_b:
+            correo_input = st.text_input(
+                "Correo Electrónico *",
+                value=st.session_state.w_correo,
+                placeholder="ejemplo@correo.com",
+                key="input_correo_p0",
             )
+
+        st.markdown("""
+        <div class="privacy-notice">
+            <p>🔒 <em>Sus datos están protegidos por la Ley 1581 de 2012 (Habeas Data).
+            Esta información es recopilada con fines netamente académicos y de validación
+            investigativa para la Universidad de la Costa (CUC). No será compartida con
+            terceros ni utilizada para fines comerciales.</em></p>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        if st.button("✅  Enviar Diagnóstico", key="btn_enviar"):
-            campos_vacios = [k for k, v in respuestas.items() if not v.strip()]
-
-            if not nombre_taller.strip():
+        if st.button("Comenzar Diagnóstico →", key="btn_comenzar"):
+            if not nombre_input.strip():
                 st.error("Por favor ingrese el nombre del taller.")
-            elif not correo.strip() or "@" not in correo:
+            elif not correo_input.strip() or "@" not in correo_input:
                 st.error("Por favor ingrese un correo electrónico válido.")
-            elif campos_vacios:
-                st.warning(
-                    f"Por favor complete todas las preguntas. "
-                    f"Faltan {len(campos_vacios)} respuesta(s)."
-                )
             else:
-                registro = {
-                    "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                    "nombre_taller":           nombre_taller.strip(),
-                    "correo":                  correo.strip().lower(),
-                    "p1_rentabilidad":         respuestas["p1_rentabilidad"].strip(),
-                    "p2_tiempo_operativo":     respuestas["p2_tiempo_operativo"].strip(),
-                    "p3_normatividad_aiu":     respuestas["p3_normatividad_aiu"].strip(),
-                    "p4_percepcion_valor":     respuestas["p4_percepcion_valor"].strip(),
-                    "p5_inteligencia_negocio": respuestas["p5_inteligencia_negocio"].strip(),
-                }
-                with st.spinner("Guardando en Google Sheets…"):
-                    exito = guardar_registro(registro)
+                with st.spinner("Verificando…"):
+                    df_check = cargar_datos()
+                    es_dup = correo_existe(df_check, correo_input)
 
-                if exito:
-                    # Toast nativo de Streamlit ≥ 1.28 — notificación flotante liviana
-                    st.toast("¡Diagnóstico enviado con éxito! 🎉", icon="✅")
-                    st.balloons()
-                    st.session_state.enviado = True
+                if es_dup:
+                    st.markdown("""
+                    <div class="alert-duplicate">
+                        <p>⚠️ Este correo ya ha completado el diagnóstico.<br>
+                        <span style="font-weight:400;font-size:0.88rem;">
+                        ¡Gracias por su valioso aporte a nuestra investigación!</span></p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.session_state.w_nombre = nombre_input.strip()
+                    st.session_state.w_correo = correo_input.strip().lower()
+                    st.session_state.step = 1
                     st.rerun()
 
-    else:
+    # ─────────────────────────────────────────────────────────────
+    #  PASOS 1–5 — Una pregunta por pantalla
+    # ─────────────────────────────────────────────────────────────
+    elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
+
+        idx              = st.session_state.step - 1   # índice 0-based en PREGUNTAS
+        clave, pregunta, placeholder = PREGUNTAS[idx]
+        ss_key           = SS_KEYS[clave]
+        es_ultima        = (st.session_state.step == TOTAL_PREGUNTAS)
+
+        # Barra de progreso nativa
+        st.progress(st.session_state.step / TOTAL_PREGUNTAS)
+
+        # Indicador de paso
         st.markdown(
-            "<p style='font-family:Montserrat,sans-serif;font-size:0.85rem;"
-            "font-style:italic;margin-top:6px;opacity:0.45;color:var(--text-color);'>"
-            "👆 Complete los campos de identificación para acceder al formulario.</p>",
+            f'<div class="wizard-step-indicator">'
+            f'Pregunta {st.session_state.step} de {TOTAL_PREGUNTAS}'
+            f'</div>',
             unsafe_allow_html=True,
         )
 
-    # Footer
+        # Tarjeta con la pregunta grande
+        st.markdown(
+            f'<div class="wizard-question-card">'
+            f'<p class="wizard-question-text">{pregunta}</p>'
+            f'</div>',
+            unsafe_allow_html=True,
+        )
+
+        # Área de respuesta — el valor se recupera del session_state
+        respuesta_actual = st.text_area(
+            label="Su respuesta:",
+            value=st.session_state[ss_key],
+            placeholder=placeholder,
+            height=165,
+            key=f"ta_{clave}_{st.session_state.step}",
+            label_visibility="collapsed",
+        )
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # Botones de navegación en dos columnas
+        col_back, col_next = st.columns([1, 2])
+
+        with col_back:
+            # Wrapper CSS para override del botón rojo → estilo secundario
+            st.markdown('<div class="wizard-back-col">', unsafe_allow_html=True)
+            if st.button("← Atrás", key=f"btn_atras_{st.session_state.step}"):
+                st.session_state[ss_key] = respuesta_actual  # guardar antes de retroceder
+                st.session_state.step -= 1
+                st.rerun()
+            st.markdown("</div>", unsafe_allow_html=True)
+
+        with col_next:
+            label_next = "✅ Enviar Diagnóstico" if es_ultima else "Siguiente →"
+            if st.button(label_next, key=f"btn_siguiente_{st.session_state.step}"):
+                if not respuesta_actual.strip():
+                    st.warning("Por favor escriba su respuesta antes de continuar.")
+                else:
+                    st.session_state[ss_key] = respuesta_actual  # persistir respuesta
+
+                    if es_ultima:
+                        # Construir registro y enviar a Google Sheets
+                        registro = {
+                            "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "nombre_taller":           st.session_state.w_nombre,
+                            "correo":                  st.session_state.w_correo,
+                            "p1_rentabilidad":         st.session_state.r_p1,
+                            "p2_tiempo_operativo":     st.session_state.r_p2,
+                            "p3_normatividad_aiu":     st.session_state.r_p3,
+                            "p4_percepcion_valor":     st.session_state.r_p4,
+                            "p5_inteligencia_negocio": st.session_state.r_p5,
+                        }
+                        with st.spinner("Guardando en Google Sheets…"):
+                            exito = guardar_registro(registro)
+
+                        if exito:
+                            st.toast("¡Diagnóstico enviado con éxito! 🎉", icon="✅")
+                            st.balloons()
+                            st.session_state.enviado = True
+                            st.rerun()
+                    else:
+                        st.session_state.step += 1
+                        st.rerun()
+
+    # Footer visible en todos los pasos del wizard
     st.markdown(
         '<div class="footer-cuc">© 2026 · <strong>Universidad de la Costa (CUC)</strong> · '
         'Barranquilla, Colombia · Investigación Académica</div>',
