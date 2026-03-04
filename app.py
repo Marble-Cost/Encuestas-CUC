@@ -9,7 +9,7 @@ import os
 #  CONFIGURACIÓN DE PÁGINA
 # ══════════════════════════════════════════════════════════════════
 st.set_page_config(
-    page_title="Diagnóstico Operativo · CUC",
+    page_title="Estudio de Rentabilidad y Eficiencia Operativa · CUC",
     page_icon="🔬",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -33,8 +33,6 @@ COLUMNAS = [
 ]
 
 # Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder_ejemplo, razon_investigacion)
-# La razon_investigacion orienta al encuestado y mejora la calidad del dato cualitativo
-# que luego se procesará en Power BI. Mantiene el tono académico-corporativo.
 PREGUNTAS = [
     (
         "p1_rentabilidad",
@@ -83,7 +81,6 @@ _defaults = {
     "w_correo": "",
     "tema_oscuro": True,
     "r_p1": "", "r_p2": "", "r_p3": "", "r_p4": "", "r_p5": "",
-    # Flag para bloquear envío si Google Sheets falló al validar
     "_gs_error": False,
 }
 for _k, _v in _defaults.items():
@@ -123,7 +120,7 @@ else:
     border_subtle    = "#E2E8F0"
     btn_text         = "#FFFFFF"
     btn_bg           = "#0F172A"
-    logo_blend       = "multiply"   # Elimina el fondo negro del JPG del logo
+    logo_blend       = "multiply"
     stepper_idle     = "#E2E8F0"
     stepper_txt_idle = "#94A3B8"
 
@@ -175,12 +172,14 @@ footer    {{ visibility: hidden !important; }}
     mix-blend-mode: {logo_blend};
 }}
 .premium-header h1 {{
-    font-size: 1.15rem;
+    font-size: 1.0rem;
     font-weight: 600;
     color: var(--text-main);
     margin: 0;
     letter-spacing: 0.02em;
     text-align: center;
+    line-height: 1.5;
+    max-width: 560px;
 }}
 
 /* ── Cards ───────────────────────────────────────── */
@@ -195,18 +194,32 @@ footer    {{ visibility: hidden !important; }}
 }}
 
 /* ── Bienvenida ──────────────────────────────────── */
+.welcome-eyebrow {{
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--cuc-red);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 12px;
+    display: block;
+}}
 .welcome-title {{
-    font-size: 1.55rem;
+    font-size: 1.65rem;
     font-weight: 700;
     color: var(--text-main);
-    margin-bottom: 10px;
+    margin-bottom: 16px;
     line-height: 1.3;
 }}
+.welcome-title span {{
+    color: var(--cuc-red);
+}}
 .welcome-text {{
-    font-size: 0.95rem;
+    font-size: 0.94rem;
     color: var(--text-muted);
-    line-height: 1.7;
-    margin-bottom: 10px;
+    line-height: 1.75;
+    margin-bottom: 22px;
+    border-left: 2px solid var(--border-subtle);
+    padding-left: 16px;
 }}
 .welcome-pills {{
     display: flex;
@@ -495,7 +508,7 @@ def correo_existe(df: pd.DataFrame, correo: str) -> bool:
     como bloqueo preventivo para evitar duplicados silenciosos.
     """
     if st.session_state.get("_gs_error", False):
-        return True  # Bloqueo preventivo ante fallo de conexión
+        return True
     if df.empty or "correo" not in df.columns:
         return False
     return (
@@ -528,11 +541,6 @@ _STEPPER_LABELS = ["01", "02", "03", "04", "05"]
 
 
 def render_stepper(step_actual: int) -> None:
-    """
-    Nodo done   = pasos anteriores completados (rojo sólido + ✓).
-    Nodo active = paso actual (borde rojo, sin relleno).
-    Nodo idle   = pasos pendientes (gris neutro).
-    """
     partes = []
     for i, lbl in enumerate(_STEPPER_LABELS):
         num = i + 1
@@ -567,7 +575,9 @@ es_admin = (pwd_input == ADMIN_PASSWORD)
 
 
 # ══════════════════════════════════════════════════════════════════
-#  HEADER COMPARTIDO (Logo CUC + Título + Toggle Tema)
+#  HEADER COMPARTIDO
+#  ▸ Título rediseñado: "Estudio de Rentabilidad y Eficiencia
+#    Operativa — Sector Superficies Arquitectónicas"
 # ══════════════════════════════════════════════════════════════════
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
@@ -584,7 +594,8 @@ def render_header() -> None:
         f"""
         <div class="premium-header">
             {logo_tag}
-            <h1>Diagnóstico Operativo · Sector Superficies Arquitectónicas</h1>
+            <h1>Estudio de Rentabilidad y Eficiencia Operativa<br>
+                Sector Superficies Arquitectónicas</h1>
         </div>
         """,
         unsafe_allow_html=True,
@@ -608,7 +619,6 @@ if es_admin:
     elif df.empty:
         st.info("La base de datos aún no tiene registros.")
     else:
-        # ── Métricas rápidas ──────────────────────────────────────
         total = len(df)
         ultima_fecha = (
             pd.to_datetime(df["timestamp"], errors="coerce").dropna().max()
@@ -647,7 +657,6 @@ if es_admin:
         st.markdown("#### Respuestas registradas")
         st.dataframe(df, use_container_width=True, height=400)
 
-        # Descarga con timestamp en nombre de archivo → listo para Power BI
         csv_bytes = df.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
         st.download_button(
             label="📥 Exportar CSV para Power BI",
@@ -689,24 +698,34 @@ else:
 
     # ── Paso 0: Pantalla de bienvenida / registro ─────────────────
     if st.session_state.step == 0:
+        # ── COPY REDISEÑADO: tono BI / consultoría de alto nivel ──
         st.markdown(
             """
             <div class="saas-card">
-                <h2 class="welcome-title">Diagnóstico Sectorial — Talleres de Superficies</h2>
+                <span class="welcome-eyebrow">
+                    Investigación Aplicada · Universidad de la Costa (CUC)
+                </span>
+                <h2 class="welcome-title">
+                    Estudio de Rentabilidad y Eficiencia Operativa —
+                    <span>Sector Superficies Arquitectónicas</span>
+                </h2>
                 <p class="welcome-text">
-                    Esta herramienta académica, respaldada por la
-                    <strong>Universidad de la Costa (CUC)</strong>, evalúa la eficiencia
-                    operativa en talleres de transformación de superficies arquitectónicas
-                    (mármol, granito, cuarzo y sinterizado).<br><br>
-                    Sus respuestas son <strong>confidenciales</strong> y se utilizarán
-                    exclusivamente para la investigación de validación comercial de
-                    <strong>CostoMármol</strong>, un software de gestión diseñado para el sector.
+                    Esta iniciativa académica, liderada por el grupo de investigación de la
+                    <strong>Universidad de la Costa (CUC)</strong>, aplica metodologías de
+                    <strong>Business Intelligence</strong> para diagnosticar las brechas operativas
+                    y financieras en talleres de transformación de superficies (mármol, granito,
+                    cuarzo y sinterizado) en la región Caribe colombiana.<br><br>
+                    Los hallazgos alimentarán el modelo de validación comercial de
+                    <strong>CostoMármol</strong>, un sistema de gestión y cotización diseñado
+                    específicamente para el sector. Su participación es confidencial, voluntaria
+                    y protegida por la Ley 1581 de 2012.
                 </p>
                 <div class="welcome-pills">
                     <span class="pill">⏱ Menos de 4 minutos</span>
                     <span class="pill">🔒 Confidencial · Ley 1581</span>
                     <span class="pill">📋 5 módulos</span>
                     <span class="pill">🏛 Respaldo CUC</span>
+                    <span class="pill">📊 Impacto sectorial</span>
                 </div>
             """,
             unsafe_allow_html=True,
@@ -767,17 +786,11 @@ else:
     # ── Pasos 1 – TOTAL_PREGUNTAS: Wizard de preguntas ────────────
     elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
         idx = st.session_state.step - 1
-
-        # Desempaquetado de los 5 campos de PREGUNTAS
         clave, titulo_corto, pregunta, placeholder, razon = PREGUNTAS[idx]
         ss_key    = SS_KEYS[clave]
         es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
 
-        # Stepper visual
         render_stepper(st.session_state.step)
-
-        # Barra de progreso: refleja pasos COMPLETADOS (step-1 / total)
-        # Evita mostrar avance antes de que el usuario haya respondido.
         st.progress((st.session_state.step - 1) / TOTAL_PREGUNTAS)
 
         st.markdown(
@@ -801,7 +814,7 @@ else:
             placeholder=placeholder,
             height=140,
             label_visibility="collapsed",
-            key=f"resp_{st.session_state.step}",  # key único por paso evita conflictos
+            key=f"resp_{st.session_state.step}",
         )
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -810,7 +823,6 @@ else:
         with col_back:
             st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
             if st.button("← Atrás", key=f"back_{st.session_state.step}"):
-                # Persiste la respuesta parcial antes de retroceder
                 st.session_state[ss_key] = respuesta_actual
                 st.session_state.step -= 1
                 st.rerun()
@@ -830,9 +842,6 @@ else:
                         unsafe_allow_html=True,
                     )
                 else:
-                    # CORRECCIÓN CRÍTICA: persistir el valor del text_area ANTES
-                    # de construir el registro final, eliminando la race condition
-                    # donde r_p5 podría contener el valor previo al click.
                     st.session_state[ss_key] = respuesta_actual
 
                     if es_ultima:
