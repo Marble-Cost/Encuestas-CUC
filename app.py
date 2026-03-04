@@ -60,12 +60,12 @@ PREGUNTAS = [
 
 # ─────────────────────────────────────────────
 #  PALETA CUC  (extraída del logo adjunto)
-#  Rojo institucional: #8B1A1A  →  variante oscura
-#  Rojo primario:      #A31621
-#  Rojo claro:         #C0392B
-#  Gris oscuro texto:  #2C2C2C
+#  Rojo institucional: #E3000F  →  rojo vivo CUC
+#  Rojo oscuro:        #B3000B
+#  Rojo claro:         #FF3341
+#  Rojo pálido:        #FDEDED
+#  Gris oscuro texto:  #1E1E1E
 #  Blanco fondo:       #FFFFFF
-#  Gris claro:         #F5F5F5
 # ─────────────────────────────────────────────
 CSS = """
 <style>
@@ -74,15 +74,15 @@ CSS = """
 
 /* ── Variables ── */
 :root {
-    --cuc-red:        #A31621;
-    --cuc-red-dark:   #7A1018;
-    --cuc-red-light:  #C0392B;
-    --cuc-red-pale:   #FAE9E9;
+    --cuc-red:        #E3000F;
+    --cuc-red-dark:   #B3000B;
+    --cuc-red-light:  #FF3341;
+    --cuc-red-pale:   #FDEDED;
     --text-dark:      #1E1E1E;
     --text-mid:       #555555;
     --bg-white:       #FFFFFF;
     --bg-light:       #F8F4F4;
-    --border-light:   #E8D5D5;
+    --border-light:   #F0D0D0;
     --success:        #1A7A4A;
     --success-bg:     #E8F5EE;
     --warning-bg:     #FFF3E0;
@@ -138,7 +138,7 @@ html, body, [class*="css"] {
     border-radius: 12px;
     padding: 32px 36px;
     margin-bottom: 24px;
-    box-shadow: 0 4px 24px rgba(163, 22, 33, 0.06);
+    box-shadow: 0 4px 24px rgba(227, 0, 15, 0.07);
 }
 
 /* ── Aviso de privacidad ── */
@@ -212,18 +212,18 @@ html, body, [class*="css"] {
 .stTextInput label, .stTextArea label {
     font-weight: 600 !important;
     color: var(--text-dark) !important;
-    font-size: 1.1rem !important;
+    font-size: 1.15rem !important;
     font-family: 'Montserrat', sans-serif !important;
     line-height: 1.5 !important;
-    margin-bottom: 6px !important;
+    margin-bottom: 8px !important;
 }
 
 /* ── Espaciado entre preguntas ── */
 div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
-    margin-bottom: 28px !important;
+    margin-bottom: 32px !important;
 }
 .stTextArea {
-    margin-bottom: 24px !important;
+    margin-bottom: 28px !important;
 }
 
 /* ── Inputs ── */
@@ -237,7 +237,7 @@ div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
 }
 .stTextInput input:focus, .stTextArea textarea:focus {
     border-color: var(--cuc-red) !important;
-    box-shadow: 0 0 0 3px rgba(163, 22, 33, 0.08) !important;
+    box-shadow: 0 0 0 3px rgba(227, 0, 15, 0.12) !important;
 }
 
 /* ── Botón principal ── */
@@ -254,13 +254,13 @@ div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
     min-width: 280px !important;
     width: 100% !important;
     transition: background 0.2s, transform 0.1s, box-shadow 0.2s !important;
-    box-shadow: 0 6px 20px rgba(163, 22, 33, 0.35) !important;
+    box-shadow: 0 6px 22px rgba(227, 0, 15, 0.40) !important;
     margin-top: 12px !important;
 }
 .stButton > button:hover {
     background: var(--cuc-red-dark) !important;
-    box-shadow: 0 6px 20px rgba(163, 22, 33, 0.35) !important;
-    transform: translateY(-1px) !important;
+    box-shadow: 0 8px 28px rgba(227, 0, 15, 0.50) !important;
+    transform: translateY(-2px) !important;
 }
 .stButton > button:active {
     transform: translateY(0) !important;
@@ -276,12 +276,12 @@ div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
     border: none !important;
     border-radius: 8px !important;
     padding: 0.65rem 2rem !important;
-    box-shadow: 0 4px 14px rgba(163, 22, 33, 0.25) !important;
+    box-shadow: 0 4px 14px rgba(227, 0, 15, 0.30) !important;
     transition: all 0.2s !important;
 }
 .stDownloadButton > button:hover {
     background: var(--cuc-red-dark) !important;
-    box-shadow: 0 6px 20px rgba(163, 22, 33, 0.35) !important;
+    box-shadow: 0 6px 20px rgba(227, 0, 15, 0.40) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -308,7 +308,7 @@ div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stTextArea"]) {
     border: 1px solid var(--border-light);
     border-radius: 10px;
     padding: 16px;
-    box-shadow: 0 2px 10px rgba(163,22,33,0.06);
+    box-shadow: 0 2px 10px rgba(227, 0, 15, 0.08);
 }
 [data-testid="metric-container"] [data-testid="stMetricValue"] {
     color: var(--cuc-red) !important;
@@ -430,20 +430,11 @@ def header_html(logo_src: str) -> str:
 col_logo, col_title = st.columns([1, 3])
 with col_logo:
     if os.path.exists(LOGO_PATH):
-        st.markdown(
-            f"""
-            <div style='display:flex; align-items:center; height:100%; padding-top:8px;'>
-                <img src="data:image/png;base64,{__import__('base64').b64encode(open(LOGO_PATH,'rb').read()).decode()}"
-                     alt="Logo Universidad de la Costa CUC"
-                     style="max-width:140px; width:100%; height:auto; object-fit:contain; image-rendering:auto;">
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        st.image(LOGO_PATH, width=180)
 with col_title:
     st.markdown("""
     <div style='padding-top:10px'>
-        <h2 style='font-family:"Montserrat",sans-serif; color:#A31621; margin:0; font-size:1.5rem; font-weight:800;'>
+        <h2 style='font-family:"Montserrat",sans-serif; color:#E3000F; margin:0; font-size:1.5rem; font-weight:800;'>
             Diagnóstico Operativo
         </h2>
         <p style='color:#666; font-size:0.8rem; letter-spacing:0.06em; text-transform:uppercase; margin:4px 0 0; font-family:"Montserrat",sans-serif;'>
@@ -452,7 +443,7 @@ with col_title:
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown("<hr style='border:none; border-top:3px solid #A31621; margin:8px 0 28px;'>", unsafe_allow_html=True)
+st.markdown("<hr style='border:none; border-top:3px solid #E3000F; margin:8px 0 28px;'>", unsafe_allow_html=True)
 
 
 # ═════════════════════════════════════════════
@@ -525,8 +516,8 @@ if es_admin:
 else:
     # Introducción
     st.markdown("""
-    <div style='background:#FAE9E9; border-radius:10px; padding:18px 22px; margin-bottom:24px; border:1px solid #E8D5D5;'>
-        <p style='margin:0; font-size:0.95rem; color:#7A1018; font-weight:600;'>
+    <div style='background:#FDEDED; border-radius:10px; padding:18px 22px; margin-bottom:24px; border:1px solid #F0D0D0;'>
+        <p style='margin:0; font-size:0.95rem; color:#B3000B; font-weight:600;'>
             🔬 Investigación Académica – Universidad de la Costa
         </p>
         <p style='margin:6px 0 0; font-size:0.88rem; color:#555; line-height:1.6;'>
@@ -539,8 +530,8 @@ else:
 
     # ── Campos de ingreso ──
     st.markdown("""
-    <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#A31621; 
-         font-weight:700; margin-bottom:14px; padding-bottom:6px; border-bottom:1px solid #E8D5D5;'>
+    <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#E3000F; 
+         font-weight:700; margin-bottom:14px; padding-bottom:6px; border-bottom:1px solid #F0D0D0;'>
         📝 Datos de Identificación
     </div>
     """, unsafe_allow_html=True)
@@ -587,8 +578,8 @@ else:
     # ── Formulario de preguntas ──
     if nombre_taller and correo:
         st.markdown("""
-        <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#A31621; 
-             font-weight:700; margin:28px 0 18px; padding-bottom:6px; border-bottom:1px solid #E8D5D5;'>
+        <div style='font-family:"Montserrat",sans-serif; font-size:1.1rem; color:#E3000F; 
+             font-weight:700; margin:28px 0 18px; padding-bottom:6px; border-bottom:1px solid #F0D0D0;'>
             🗒 Diagnóstico Operativo
         </div>
         """, unsafe_allow_html=True)
