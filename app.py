@@ -9,7 +9,7 @@ import os
 #  CONFIGURACIÓN DE PÁGINA
 # ══════════════════════════════════════════════════════════════════
 st.set_page_config(
-    page_title="Estudio de Rentabilidad y Eficiencia Operativa · CUC",
+    page_title="Diagnóstico CostoMármol · CUC",
     page_icon="🔬",
     layout="centered",
     initial_sidebar_state="collapsed",
@@ -32,42 +32,79 @@ COLUMNAS = [
     "p5_inteligencia_negocio",
 ]
 
-# Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder_ejemplo, razon_investigacion)
+# Respuestas rápidas por módulo
+QUICK_OPTIONS = {
+    "p1_rentabilidad": [
+        "✅ No, todo bien",
+        "⚠️ Sí, una vez",
+        "🔴 Sí, varias veces",
+    ],
+    "p2_tiempo_operativo": [
+        "⚡ Menos de 1 hora",
+        "⏱️ Pocas horas",
+        "📅 1 a 2 días",
+        "⏳ Más de 3 días",
+    ],
+    "p3_normatividad_aiu": [
+        "✅ Nunca",
+        "⚠️ 1 a 2 veces",
+        "🔴 3 o más veces",
+    ],
+    "p4_percepcion_valor": [
+        "💬 WhatsApp / texto",
+        "📊 Excel",
+        "📄 PDF formal",
+        "💻 Sistema propio",
+    ],
+    "p5_inteligencia_negocio": [
+        "✅ Sí, tengo registro",
+        "📝 Solo apuntes",
+        "🧠 Solo experiencia",
+        "❌ No tengo nada",
+    ],
+}
+
+# Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder, razon, emoji_modulo)
 PREGUNTAS = [
     (
         "p1_rentabilidad",
         "Rentabilidad Financiera",
-        "¿En los últimos 3 meses ha tenido algún proyecto donde la utilidad final fue menor a la esperada? ¿Qué ocurrió y cuál fue la diferencia aproximada?",
+        "¿En los últimos 3 meses ha tenido algún proyecto donde la utilidad final fue menor a la esperada? ¿Qué ocurrió y cuánto fue la diferencia aproximada?",
         "Ej: Sí, en un proyecto de cocina la utilidad fue 30% menor porque el material subió de precio y hubo desperdicio no calculado.",
-        "Esta variable nos permite identificar si existen pérdidas sistemáticas por consumibles no controlados, un indicador clave del diagnóstico.",
+        "Identifica pérdidas sistemáticas por consumibles no controlados.",
+        "💰",
     ),
     (
         "p2_tiempo_operativo",
         "Tiempo Operativo",
         "¿Cuánto tiempo le toma en promedio elaborar una cotización completa desde que recibe la solicitud hasta que la envía al cliente?",
         "Ej: Me toma entre 1 y 2 días, principalmente porque debo consultar precios actualizados con proveedores.",
-        "Medimos la eficiencia del proceso de cotización para determinar si representa un cuello de botella operativo en el sector.",
+        "Mide si la cotización es un cuello de botella operativo.",
+        "⏱️",
     ),
     (
         "p3_normatividad_aiu",
         "Normatividad AIU",
         "¿Ha tenido observaciones, ajustes o pérdida de contratos por errores en el manejo tributario (AIU, IVA u otros)? ¿Cuántas veces en el último año?",
         "Ej: Sí, dos veces en el último año me pidieron corregir el AIU en contratos con constructoras.",
-        "Cuantificar la frecuencia de errores tributarios nos permite estimar el impacto económico real de la informalidad normativa en el sector.",
+        "Cuantifica el impacto económico de la informalidad normativa.",
+        "📋",
     ),
     (
         "p4_percepcion_valor",
         "Percepción de Valor",
-        "¿Cómo entrega actualmente sus cotizaciones (WhatsApp, Excel, PDF formal, sistema)? ¿Ha notado diferencias en la respuesta del cliente según el formato utilizado?",
+        "¿Cómo entrega actualmente sus cotizaciones (WhatsApp, Excel, PDF formal, sistema)? ¿Ha notado diferencias en la respuesta del cliente según el formato?",
         "Ej: Las envío por WhatsApp en texto; los clientes empresariales me piden PDF formal y a veces dudan del precio.",
-        "Analizamos si el formato de entrega afecta la percepción de profesionalismo y la tasa de cierre de negocios.",
+        "Analiza si el formato afecta la tasa de cierre de negocios.",
+        "📤",
     ),
     (
         "p5_inteligencia_negocio",
         "Inteligencia de Negocio",
-        "¿Cuenta con algún sistema o registro que le permita identificar qué tipo de material (granito, sinterizado, cuarzo, etc.) le genera mayor margen? Si no, ¿cómo toma esa decisión actualmente?",
+        "¿Cuenta actualmente con algún sistema o registro que le permita identificar qué tipo de material o proyecto le deja mayor margen? Si no, ¿cómo toma esa decisión?",
         "Ej: No tengo un sistema exacto, lo decido por experiencia empírica de lo que me quedó en proyectos pasados.",
-        "Esta variable evalúa el nivel de madurez en inteligencia de negocio del sector, base fundamental del módulo analítico de CostoMármol.",
+        "Evalúa el nivel de madurez analítica del sector.",
+        "📊",
     ),
 ]
 
@@ -81,6 +118,7 @@ _defaults = {
     "w_correo": "",
     "tema_oscuro": True,
     "r_p1": "", "r_p2": "", "r_p3": "", "r_p4": "", "r_p5": "",
+    "q_p1": None, "q_p2": None, "q_p3": None, "q_p4": None, "q_p5": None,
     "_gs_error": False,
 }
 for _k, _v in _defaults.items():
@@ -94,6 +132,13 @@ SS_KEYS = {
     "p4_percepcion_valor":     "r_p4",
     "p5_inteligencia_negocio": "r_p5",
 }
+QQ_KEYS = {
+    "p1_rentabilidad":         "q_p1",
+    "p2_tiempo_operativo":     "q_p2",
+    "p3_normatividad_aiu":     "q_p3",
+    "p4_percepcion_valor":     "q_p4",
+    "p5_inteligencia_negocio": "q_p5",
+}
 TOTAL_PREGUNTAS = len(PREGUNTAS)
 
 # ══════════════════════════════════════════════════════════════════
@@ -103,6 +148,7 @@ if st.session_state.tema_oscuro:
     bg_main          = "#0B0E14"
     bg_card          = "#151A23"
     bg_context       = "#1A2030"
+    bg_welcome_card  = "#12151E"
     text_main        = "#F2F5F8"
     text_muted       = "#8B949E"
     border_subtle    = "#30363D"
@@ -111,10 +157,15 @@ if st.session_state.tema_oscuro:
     logo_blend       = "normal"
     stepper_idle     = "#2A3040"
     stepper_txt_idle = "#4A5568"
+    pill_bg          = "rgba(255,255,255,0.06)"
+    pill_border      = "rgba(255,255,255,0.12)"
+    pill_color       = "#8B949E"
+    info_card_bg     = "#1A2030"
 else:
-    bg_main          = "#F8F9FA"
+    bg_main          = "#F4F6FA"
     bg_card          = "#FFFFFF"
     bg_context       = "#FFF5F5"
+    bg_welcome_card  = "#FFFFFF"
     text_main        = "#0F172A"
     text_muted       = "#64748B"
     border_subtle    = "#E2E8F0"
@@ -123,13 +174,17 @@ else:
     logo_blend       = "multiply"
     stepper_idle     = "#E2E8F0"
     stepper_txt_idle = "#94A3B8"
+    pill_bg          = "rgba(0,0,0,0.04)"
+    pill_border      = "rgba(0,0,0,0.10)"
+    pill_color       = "#64748B"
+    info_card_bg     = "#F0F4FF"
 
 # ══════════════════════════════════════════════════════════════════
-#  CSS — DISEÑO PREMIUM, RESPONSIVO Y CORPORATIVO
+#  CSS — DISEÑO PREMIUM MOBILE-FIRST
 # ══════════════════════════════════════════════════════════════════
 CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {{
     --bg-main:       {bg_main};
@@ -142,8 +197,14 @@ CSS = f"""
     --btn-bg:        {btn_bg};
     --cuc-red:       #E3000F;
     --cuc-red-hover: #B3000B;
+    --cuc-red-soft:  rgba(227,0,15,0.10);
     --stepper-idle:  {stepper_idle};
     --stepper-txt:   {stepper_txt_idle};
+    --pill-bg:       {pill_bg};
+    --pill-border:   {pill_border};
+    --pill-color:    {pill_color};
+    --info-card-bg:  {info_card_bg};
+    --welcome-bg:    {bg_welcome_card};
 }}
 
 html, body, [class*="css"], .stApp, .stMarkdown,
@@ -157,22 +218,22 @@ footer    {{ visibility: hidden !important; }}
 
 .stApp {{ background-color: var(--bg-main) !important; }}
 
-/* ── Header ─────────────────────────────────────── */
+/* ══ HEADER ════════════════════════════════════════════ */
 .premium-header {{
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 20px 0 10px 0;
+    padding: 18px 0 8px 0;
 }}
 .premium-header img {{
-    height: 45px;
+    height: 42px;
     object-fit: contain;
-    margin-bottom: 15px;
+    margin-bottom: 12px;
     mix-blend-mode: {logo_blend};
 }}
 .premium-header h1 {{
-    font-size: 1.0rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text-main);
     margin: 0;
@@ -182,72 +243,94 @@ footer    {{ visibility: hidden !important; }}
     max-width: 560px;
 }}
 
-/* ── Cards ───────────────────────────────────────── */
-.saas-card {{
-    background-color: var(--bg-card);
+/* ══ TARJETAS INFO (BIENVENIDA) ════════════════════════ */
+.info-cards-row {{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin: 0 0 24px 0;
+}}
+.info-card {{
+    background: var(--info-card-bg);
     border: 1px solid var(--border-subtle);
     border-radius: 16px;
-    padding: 40px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-    transition: all 0.3s ease;
+    padding: 22px 14px 18px 14px;
+    text-align: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }}
+.info-card:hover {{
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+}}
+.info-card .ic-icon {{
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1;
+}}
+.info-card .ic-title {{
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 4px;
+    display: block;
+}}
+.info-card .ic-desc {{
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    line-height: 1.45;
+    display: block;
+}}
+.info-card.red {{
+    border-color: rgba(227,0,15,0.25);
+    background: var(--cuc-red-soft);
+}}
+.info-card.red .ic-title {{ color: var(--cuc-red); }}
 
-/* ── Bienvenida ──────────────────────────────────── */
+/* ══ BIENVENIDA CARD ═══════════════════════════════════ */
+.welcome-card {{
+    background: var(--welcome-bg);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    padding: 32px 28px 24px 28px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+}}
 .welcome-eyebrow {{
-    font-size: 0.72rem;
+    font-size: 0.70rem;
     font-weight: 700;
     color: var(--cuc-red);
     text-transform: uppercase;
     letter-spacing: 0.14em;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
     display: block;
 }}
 .welcome-title {{
-    font-size: 1.65rem;
-    font-weight: 700;
+    font-size: 1.5rem;
+    font-weight: 800;
     color: var(--text-main);
-    margin-bottom: 16px;
+    margin: 0 0 20px 0;
     line-height: 1.3;
 }}
-.welcome-title span {{
-    color: var(--cuc-red);
-}}
-.welcome-text {{
-    font-size: 0.94rem;
-    color: var(--text-muted);
-    line-height: 1.75;
-    margin-bottom: 22px;
-    border-left: 2px solid var(--border-subtle);
-    padding-left: 16px;
-}}
-.welcome-pills {{
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    margin-bottom: 28px;
-}}
-.pill {{
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    background: rgba(227,0,15,0.07);
-    border: 1px solid rgba(227,0,15,0.18);
-    color: var(--cuc-red);
-    font-size: 0.78rem;
-    font-weight: 600;
-    padding: 5px 12px;
+.welcome-title span {{ color: var(--cuc-red); }}
+
+/* ══ SAAS CARD (PREGUNTAS) ═════════════════════════════ */
+.saas-card {{
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-subtle);
     border-radius: 20px;
-    letter-spacing: 0.02em;
+    padding: 28px 24px 24px 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    margin-bottom: 16px;
 }}
 
-/* ── Stepper visual ──────────────────────────────── */
+/* ══ STEPPER ═══════════════════════════════════════════ */
 .stepper-wrap {{
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0;
-    margin: 22px 0 18px 0;
+    margin: 20px 0 16px 0;
 }}
 .step-node {{
     width: 34px;
@@ -270,7 +353,7 @@ footer    {{ visibility: hidden !important; }}
     background: transparent;
     color: var(--cuc-red);
     border: 2px solid var(--cuc-red);
-    box-shadow: 0 0 0 4px rgba(227,0,15,0.14);
+    box-shadow: 0 0 0 5px rgba(227,0,15,0.14);
 }}
 .step-node.idle {{
     background: var(--stepper-idle);
@@ -286,100 +369,140 @@ footer    {{ visibility: hidden !important; }}
 .step-connector.done {{ background: var(--cuc-red); }}
 .step-connector.idle {{ background: var(--stepper-idle); }}
 
-/* ── Indicador de módulo ─────────────────────────── */
+/* ══ WIZARD MODULE LABEL ═══════════════════════════════ */
 .wizard-step {{
-    font-size: 0.78rem;
+    font-size: 0.73rem;
     font-weight: 600;
     color: var(--cuc-red);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    margin-bottom: 8px;
+    margin-bottom: 6px;
     display: block;
 }}
+.wizard-module-icon {{
+    font-size: 2.2rem;
+    display: block;
+    margin-bottom: 8px;
+}}
 .wizard-title {{
-    font-size: 1.5rem;
-    font-weight: 600;
+    font-size: 1.2rem;
+    font-weight: 700;
     color: var(--text-main);
-    line-height: 1.45;
-    margin: 0 0 22px 0;
+    line-height: 1.5;
+    margin: 0 0 18px 0;
 }}
 
-/* ── Contexto de investigación ───────────────────── */
+/* ══ CONTEXT BOX ═══════════════════════════════════════ */
 .context-box {{
     background-color: var(--bg-context);
     border-left: 3px solid var(--cuc-red);
     border-radius: 0 8px 8px 0;
-    padding: 11px 16px;
-    margin-bottom: 22px;
-    font-size: 0.83rem;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    font-size: 0.80rem;
     color: var(--text-muted);
     line-height: 1.6;
-}}
-.context-box strong {{
-    color: var(--cuc-red);
-    font-weight: 600;
-    font-size: 0.74rem;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    display: block;
-    margin-bottom: 3px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
 }}
 
-/* ── Inputs ──────────────────────────────────────── */
+/* ══ VOZ HINT ══════════════════════════════════════════ */
+.voz-hint {{
+    font-style: italic;
+    font-size: 0.80rem;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+    display: block;
+    opacity: 0.75;
+}}
+
+/* ══ INPUTS ════════════════════════════════════════════ */
 .stTextInput input, .stTextArea textarea {{
     background-color: transparent !important;
     border: none !important;
     border-bottom: 2px solid var(--border-subtle) !important;
     border-radius: 0 !important;
     color: var(--text-main) !important;
-    font-size: 1.05rem !important;
-    padding: 12px 0 !important;
+    font-size: 1.0rem !important;
+    padding: 10px 0 !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease !important;
 }}
 .stTextInput input:focus, .stTextArea textarea:focus {{
     border-bottom: 2px solid var(--cuc-red) !important;
+    outline: none !important;
 }}
 .stTextInput label, .stTextArea label {{
-    font-size: 0.82rem !important;
+    font-size: 0.80rem !important;
     color: var(--text-muted) !important;
     font-weight: 500 !important;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }}
 
-/* ── Botones ─────────────────────────────────────── */
+/* ══ BOTONES PRINCIPALES ═══════════════════════════════ */
 .stButton > button {{
     background-color: var(--btn-bg) !important;
     color: var(--btn-text) !important;
     border: none !important;
-    border-radius: 8px !important;
-    font-weight: 600 !important;
-    font-size: 1rem !important;
-    padding: 12px 24px !important;
+    border-radius: 14px !important;
+    font-weight: 700 !important;
+    font-size: 1.05rem !important;
+    padding: 16px 24px !important;
     width: 100% !important;
     transition: all 0.2s ease !important;
+    letter-spacing: 0.01em;
 }}
-.stButton > button:hover {{ transform: translateY(-2px); opacity: 0.9; }}
+.stButton > button:hover {{
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    opacity: 0.93;
+}}
+.stButton > button:active {{
+    transform: translateY(0);
+}}
 
 .btn-rojo .stButton > button {{
-    background-color: var(--cuc-red) !important;
+    background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
     color: #FFFFFF !important;
+    box-shadow: 0 4px 18px rgba(227,0,15,0.30) !important;
+    font-size: 1.1rem !important;
+    padding: 18px 24px !important;
 }}
 .btn-rojo .stButton > button:hover {{
-    background-color: var(--cuc-red-hover) !important;
+    box-shadow: 0 8px 28px rgba(227,0,15,0.42) !important;
+    transform: translateY(-3px);
 }}
+
+.btn-start .stButton > button {{
+    background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
+    color: #FFFFFF !important;
+    box-shadow: 0 6px 24px rgba(227,0,15,0.36) !important;
+    font-size: 1.2rem !important;
+    padding: 20px 24px !important;
+    border-radius: 16px !important;
+    letter-spacing: 0.02em;
+}}
+.btn-start .stButton > button:hover {{
+    box-shadow: 0 10px 32px rgba(227,0,15,0.46) !important;
+    transform: translateY(-3px);
+}}
+
 .btn-outline .stButton > button {{
     background-color: transparent !important;
     color: var(--text-muted) !important;
-    border: 1px solid var(--border-subtle) !important;
+    border: 1.5px solid var(--border-subtle) !important;
+    font-size: 0.95rem !important;
+    padding: 14px 24px !important;
 }}
 .btn-outline .stButton > button:hover {{
     color: var(--text-main) !important;
     border-color: var(--text-muted) !important;
+    background: transparent !important;
 }}
 
-/* ── Alerta ──────────────────────────────────────── */
+/* ══ ALERTA ════════════════════════════════════════════ */
 .custom-alert {{
     background-color: rgba(227, 0, 15, 0.08);
     border-left: 3px solid var(--cuc-red);
@@ -391,30 +514,36 @@ footer    {{ visibility: hidden !important; }}
     margin-top: 12px;
 }}
 
-/* ── Barra de progreso ───────────────────────────── */
+/* ══ BARRA DE PROGRESO ═════════════════════════════════ */
 .stProgress > div > div > div > div {{
-    background-color: var(--cuc-red) !important;
+    background: linear-gradient(90deg, #E3000F, #FF4D57) !important;
+    border-radius: 4px !important;
+}}
+.stProgress > div > div {{
+    background: var(--stepper-idle) !important;
+    border-radius: 4px !important;
+    height: 6px !important;
 }}
 
-/* ── Pantalla de confirmación ────────────────────── */
+/* ══ CONFIRMACIÓN ══════════════════════════════════════ */
 .confirm-icon {{
-    font-size: 3rem;
+    font-size: 3.5rem;
     display: block;
     text-align: center;
-    margin-bottom: 16px;
+    margin-bottom: 14px;
 }}
 .confirm-title {{
-    font-size: 1.5rem;
-    font-weight: 700;
+    font-size: 1.6rem;
+    font-weight: 800;
     color: var(--text-main);
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }}
 .confirm-text {{
     font-size: 0.93rem;
     color: var(--text-muted);
     text-align: center;
-    line-height: 1.7;
+    line-height: 1.75;
     margin-bottom: 20px;
 }}
 .confirm-badge {{
@@ -429,7 +558,7 @@ footer    {{ visibility: hidden !important; }}
     text-transform: uppercase;
 }}
 
-/* ── Admin métricas ──────────────────────────────── */
+/* ══ ADMIN ═════════════════════════════════════════════ */
 .admin-metric {{
     background-color: var(--bg-card);
     border: 1px solid var(--border-subtle);
@@ -452,21 +581,49 @@ footer    {{ visibility: hidden !important; }}
     letter-spacing: 0.06em;
 }}
 
-/* ── Footer ──────────────────────────────────────── */
+/* ══ FOOTER ════════════════════════════════════════════ */
 .minimal-footer {{
     text-align: center;
-    margin-top: 50px;
+    margin-top: 44px;
     padding-bottom: 20px;
-    font-size: 0.75rem;
+    font-size: 0.73rem;
     color: var(--text-muted);
     line-height: 1.8;
 }}
 
-/* ── Toggle ──────────────────────────────────────── */
+/* ══ TOGGLE ════════════════════════════════════════════ */
 div[data-testid="stToggle"] label p {{
     color: var(--text-muted) !important;
-    font-size: 0.82rem !important;
+    font-size: 0.80rem !important;
     font-weight: 600 !important;
+}}
+
+/* ══ PILLS (st.pills / radio) ══════════════════════════ */
+div[data-testid="stPills"] button, div[data-baseweb="radio"] label {{
+    background: var(--pill-bg) !important;
+    border: 1.5px solid var(--pill-border) !important;
+    color: var(--pill-color) !important;
+    border-radius: 24px !important;
+    font-size: 0.88rem !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    transition: all 0.18s ease !important;
+    cursor: pointer;
+}}
+div[data-testid="stPills"] button[aria-selected="true"] {{
+    background: var(--cuc-red-soft) !important;
+    border-color: var(--cuc-red) !important;
+    color: var(--cuc-red) !important;
+    font-weight: 700 !important;
+}}
+
+/* ══ RESPONSIVE MOBILE ═════════════════════════════════ */
+@media (max-width: 480px) {{
+    .info-cards-row {{ grid-template-columns: 1fr; gap: 10px; }}
+    .welcome-title {{ font-size: 1.25rem; }}
+    .wizard-title {{ font-size: 1.05rem; }}
+    .saas-card {{ padding: 20px 16px; }}
+    .welcome-card {{ padding: 24px 18px 20px 18px; }}
 }}
 </style>
 """
@@ -482,11 +639,6 @@ def get_conn() -> GSheetsConnection:
 
 
 def cargar_datos() -> pd.DataFrame:
-    """
-    Lee el Google Sheet y retorna un DataFrame normalizado.
-    Activa _gs_error=True si la conexión falla para bloquear
-    registros duplicados en correo_existe().
-    """
     try:
         conn = get_conn()
         df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
@@ -502,11 +654,6 @@ def cargar_datos() -> pd.DataFrame:
 
 
 def correo_existe(df: pd.DataFrame, correo: str) -> bool:
-    """
-    Valida la llave primaria (correo) contra la base de datos.
-    Si hubo un error de conexión (_gs_error=True), retorna True
-    como bloqueo preventivo para evitar duplicados silenciosos.
-    """
     if st.session_state.get("_gs_error", False):
         return True
     if df.empty or "correo" not in df.columns:
@@ -518,10 +665,6 @@ def correo_existe(df: pd.DataFrame, correo: str) -> bool:
 
 
 def guardar_registro(registro: dict) -> bool:
-    """
-    Agrega un nuevo registro al Google Sheet.
-    No escribe archivos locales (compatible con Streamlit Community Cloud).
-    """
     try:
         conn = get_conn()
         df_actual = cargar_datos()
@@ -535,7 +678,7 @@ def guardar_registro(registro: dict) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════
-#  COMPONENTE: STEPPER VISUAL DE MÓDULOS
+#  COMPONENTE: STEPPER VISUAL
 # ══════════════════════════════════════════════════════════════════
 _STEPPER_LABELS = ["01", "02", "03", "04", "05"]
 
@@ -576,8 +719,6 @@ es_admin = (pwd_input == ADMIN_PASSWORD)
 
 # ══════════════════════════════════════════════════════════════════
 #  HEADER COMPARTIDO
-#  ▸ Título rediseñado: "Estudio de Rentabilidad y Eficiencia
-#    Operativa — Sector Superficies Arquitectónicas"
 # ══════════════════════════════════════════════════════════════════
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
@@ -673,19 +814,19 @@ if es_admin:
 else:
     render_header()
 
-    # ── Pantalla de confirmación (post-envío) ─────────────────────
+    # ── Pantalla de confirmación ───────────────────────────────────
     if st.session_state.enviado:
         nombre_taller = st.session_state.w_nombre or "su empresa"
         st.markdown(
             f"""
-            <div class="saas-card" style="text-align:center; padding:48px 40px;">
-                <span class="confirm-icon">✅</span>
-                <h2 class="confirm-title">Diagnóstico registrado con éxito.</h2>
+            <div class="saas-card" style="text-align:center; padding:48px 28px;">
+                <span class="confirm-icon">🎉</span>
+                <h2 class="confirm-title">¡Diagnóstico enviado!</h2>
                 <p class="confirm-text">
-                    Las respuestas de <strong>{nombre_taller}</strong> han sido almacenadas
-                    de forma segura en la base de datos de la investigación.<br>
-                    Su experiencia es fundamental para el desarrollo de <strong>CostoMármol</strong>.
-                    Gracias por su tiempo y confianza.
+                    Las respuestas de <strong>{nombre_taller}</strong> quedaron registradas
+                    de forma segura.<br><br>
+                    Su experiencia es clave para el desarrollo de <strong>CostoMármol</strong>.<br>
+                    ¡Gracias por su tiempo!
                 </p>
                 <div class="confirm-badge">
                     🏛️ &nbsp;Universidad de la Costa (CUC) · Barranquilla &nbsp;|&nbsp; Uso Académico Exclusivo
@@ -696,36 +837,36 @@ else:
         )
         st.stop()
 
-    # ── Paso 0: Pantalla de bienvenida / registro ─────────────────
+    # ── PASO 0: Bienvenida visual ─────────────────────────────────
     if st.session_state.step == 0:
-        # ── COPY REDISEÑADO: tono BI / consultoría de alto nivel ──
+
         st.markdown(
             """
-            <div class="saas-card">
+            <div class="welcome-card">
                 <span class="welcome-eyebrow">
                     Investigación Aplicada · Universidad de la Costa (CUC)
                 </span>
                 <h2 class="welcome-title">
-                    Estudio de Rentabilidad y Eficiencia Operativa —
-                    <span>Sector Superficies Arquitectónicas</span>
+                    Diagnóstico Rápido para<br>
+                    <span>Talleres de Superficies</span>
                 </h2>
-                <p class="welcome-text">
-                    Esta iniciativa académica, liderada por el grupo de investigación de la
-                    <strong>Universidad de la Costa (CUC)</strong>, aplica metodologías de
-                    <strong>Business Intelligence</strong> para diagnosticar las brechas operativas
-                    y financieras en talleres de transformación de superficies (mármol, granito,
-                    cuarzo y sinterizado) en la región Caribe colombiana.<br><br>
-                    Los hallazgos alimentarán el modelo de validación comercial de
-                    <strong>CostoMármol</strong>, un sistema de gestión y cotización diseñado
-                    específicamente para el sector. Su participación es confidencial, voluntaria
-                    y protegida por la Ley 1581 de 2012.
-                </p>
-                <div class="welcome-pills">
-                    <span class="pill">⏱ Menos de 4 minutos</span>
-                    <span class="pill">🔒 Confidencial · Ley 1581</span>
-                    <span class="pill">📋 5 módulos</span>
-                    <span class="pill">🏛 Respaldo CUC</span>
-                    <span class="pill">📊 Impacto sectorial</span>
+
+                <div class="info-cards-row">
+                    <div class="info-card red">
+                        <span class="ic-icon">🔬</span>
+                        <span class="ic-title">¿Qué es esto?</span>
+                        <span class="ic-desc">Validación comercial de CostoMármol · CUC</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="ic-icon">⚡</span>
+                        <span class="ic-title">Menos de 3 min</span>
+                        <span class="ic-desc">Solo 5 preguntas cortas sobre su taller</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="ic-icon">🔒</span>
+                        <span class="ic-title">100% Privado</span>
+                        <span class="ic-desc">Protegido por Ley 1581 de 2012</span>
+                    </div>
                 </div>
             """,
             unsafe_allow_html=True,
@@ -734,7 +875,7 @@ else:
         nombre_input = st.text_input(
             "Empresa o Taller",
             value=st.session_state.w_nombre,
-            placeholder="Nombre de su negocio o razón social",
+            placeholder="Nombre de su negocio",
         )
         correo_input = st.text_input(
             "Correo electrónico",
@@ -744,14 +885,18 @@ else:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        if st.button("Iniciar Diagnóstico →"):
+        st.markdown('<div class="btn-start">', unsafe_allow_html=True)
+        iniciar = st.button("🚀  Iniciar Diagnóstico", use_container_width=True)
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        if iniciar:
             nombre_ok = bool(nombre_input.strip())
             correo_ok = "@" in correo_input and "." in correo_input.split("@")[-1]
 
             if not nombre_ok or not correo_ok:
                 st.markdown(
                     '<div class="custom-alert">'
-                    "⚠️ Por favor complete ambos campos correctamente para continuar."
+                    "⚠️ Complete ambos campos correctamente para continuar."
                     "</div>",
                     unsafe_allow_html=True,
                 )
@@ -762,16 +907,16 @@ else:
                     if st.session_state.get("_gs_error", False):
                         st.markdown(
                             '<div class="custom-alert">'
-                            "⚠️ No fue posible conectar con la base de datos en este momento. "
-                            "Por favor intente de nuevo en unos instantes."
+                            "⚠️ No fue posible conectar con la base de datos. "
+                            "Intente de nuevo en unos instantes."
                             "</div>",
                             unsafe_allow_html=True,
                         )
                     elif correo_existe(df_check, correo_input):
                         st.markdown(
                             '<div class="custom-alert">'
-                            "Este correo ya completó el diagnóstico previamente. "
-                            "Cada empresa participa una sola vez. Gracias."
+                            "Este correo ya completó el diagnóstico. "
+                            "Cada empresa participa una sola vez. ¡Gracias!"
                             "</div>",
                             unsafe_allow_html=True,
                         )
@@ -781,39 +926,57 @@ else:
                         st.session_state.step = 1
                         st.rerun()
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)  # cierra welcome-card
 
-    # ── Pasos 1 – TOTAL_PREGUNTAS: Wizard de preguntas ────────────
+    # ── PASOS 1–5: Wizard de preguntas ────────────────────────────
     elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
         idx = st.session_state.step - 1
-        clave, titulo_corto, pregunta, placeholder, razon = PREGUNTAS[idx]
+        clave, titulo_corto, pregunta, placeholder, razon, emoji = PREGUNTAS[idx]
         ss_key    = SS_KEYS[clave]
+        qq_key    = QQ_KEYS[clave]
         es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
+        opciones  = QUICK_OPTIONS[clave]
 
         render_stepper(st.session_state.step)
         st.progress((st.session_state.step - 1) / TOTAL_PREGUNTAS)
 
         st.markdown(
             f"""
-            <div class="saas-card" style="margin-top:18px;">
+            <div class="saas-card" style="margin-top:14px;">
                 <span class="wizard-step">
-                    Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}
+                    Módulo {st.session_state.step} de {TOTAL_PREGUNTAS}
                 </span>
+                <span class="wizard-module-icon">{emoji}</span>
                 <h3 class="wizard-title">{pregunta}</h3>
                 <div class="context-box">
-                    <strong>Objetivo del módulo</strong>
-                    {razon}
+                    🎯&nbsp; {razon}
                 </div>
             """,
             unsafe_allow_html=True,
         )
 
+        # ── Selección rápida visual ──────────────────────────────
+        st.markdown("**Selección rápida** *(opcional)*")
+        seleccion_rapida = st.pills(
+            label="Selección rápida",
+            options=opciones,
+            default=st.session_state.get(qq_key),
+            key=f"pills_{st.session_state.step}",
+            label_visibility="collapsed",
+        )
+
+        # ── Hint de voz ─────────────────────────────────────────
+        st.markdown(
+            '<span class="voz-hint">🎙️ Consejo: Usa el micrófono de tu teclado para responder más rápido.</span>',
+            unsafe_allow_html=True,
+        )
+
+        # ── Text area detalle ────────────────────────────────────
         respuesta_actual = st.text_area(
-            label="Su respuesta:",
+            label="Cuéntenos más (opcional si ya eligió arriba):",
             value=st.session_state[ss_key],
             placeholder=placeholder,
-            height=140,
-            label_visibility="collapsed",
+            height=120,
             key=f"resp_{st.session_state.step}",
         )
 
@@ -822,27 +985,38 @@ else:
 
         with col_back:
             st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
-            if st.button("← Atrás", key=f"back_{st.session_state.step}"):
+            if st.button("← Atrás", key=f"back_{st.session_state.step}", use_container_width=True):
                 st.session_state[ss_key] = respuesta_actual
+                st.session_state[qq_key] = seleccion_rapida
                 st.session_state.step -= 1
                 st.rerun()
             st.markdown("</div>", unsafe_allow_html=True)
 
         with col_next:
+            label_next = "✅  Finalizar y Enviar" if es_ultima else "Siguiente  →"
             if es_ultima:
                 st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
 
-            label_next = "Finalizar y Enviar" if es_ultima else "Continuar →"
-            if st.button(label_next, key=f"next_{st.session_state.step}"):
-                if not respuesta_actual.strip():
+            if st.button(label_next, key=f"next_{st.session_state.step}", use_container_width=True):
+                # Construir respuesta combinada (selección rápida + texto libre)
+                texto_combinado = respuesta_actual.strip()
+                if seleccion_rapida:
+                    prefijo = f"[{seleccion_rapida}] "
+                    if not texto_combinado:
+                        texto_combinado = seleccion_rapida
+                    elif not texto_combinado.startswith(prefijo):
+                        texto_combinado = prefijo + texto_combinado
+
+                if not texto_combinado:
                     st.markdown(
                         '<div class="custom-alert">'
-                        "⚠️ Por favor ingrese una respuesta antes de continuar."
+                        "⚠️ Elige una opción o escribe una respuesta antes de continuar."
                         "</div>",
                         unsafe_allow_html=True,
                     )
                 else:
-                    st.session_state[ss_key] = respuesta_actual
+                    st.session_state[ss_key] = texto_combinado
+                    st.session_state[qq_key] = seleccion_rapida
 
                     if es_ultima:
                         registro = {
@@ -862,7 +1036,7 @@ else:
                             else:
                                 st.markdown(
                                     '<div class="custom-alert">'
-                                    "⚠️ Ocurrió un error al guardar. Por favor intente de nuevo. "
+                                    "⚠️ Ocurrió un error al guardar. Intente de nuevo. "
                                     "Si el problema persiste, contacte al equipo de investigación."
                                     "</div>",
                                     unsafe_allow_html=True,
@@ -874,9 +1048,9 @@ else:
             if es_ultima:
                 st.markdown("</div>", unsafe_allow_html=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)  # cierra saas-card
 
-    # ── Footer ────────────────────────────────────────────────────
+    # ── Footer ─────────────────────────────────────────────────────
     st.markdown(
         """
         <div class="minimal-footer">
