@@ -135,76 +135,204 @@ QQ_KEYS = {
 TOTAL_PREGUNTAS = len(PREGUNTAS)
 
 # ══════════════════════════════════════════════════════════════════
-#  LÓGICA DINÁMICA DE COLORES (MODO CLARO / OSCURO)
+#  PALETA DE COLOR — REDISEÑO B2B PREMIUM
+#
+#  PRINCIPIOS WCAG APLICADOS:
+#  · Modo oscuro: el rojo #E3000F NUNCA aparece en texto ni bordes
+#    de tipografía. Reservado exclusivamente para: barra de progreso,
+#    botón CTA "Enviar/Iniciar", estado seleccionado de píldoras
+#    (fondo suave + borde + texto BLANCO, jamás texto rojo).
+#  · Modo claro: jerarquía de grises oscuros, rojo solo en CTAs.
+#  · Stepper: paso activo = fondo rojo sólido + texto blanco.
+#    Sin texto rojo en ningún estado.
 # ══════════════════════════════════════════════════════════════════
 if st.session_state.tema_oscuro:
-    bg_main          = "#0B0E14"
-    bg_card          = "#151A23"
-    bg_welcome_card  = "#12151E"
-    text_main        = "#F2F5F8"
-    text_muted       = "#8B949E"
-    border_subtle    = "#30363D"
-    btn_text         = "#0B0E14"
-    btn_bg           = "#F2F5F8"
+    # Fondos
+    bg_main          = "#0D1117"
+    bg_card          = "#161B22"
+    bg_welcome_card  = "#161B22"
+
+    # Tipografía — SOLO blancos y grises. CERO rojo.
+    text_main        = "#FFFFFF"          # títulos, preguntas: blanco puro
+    text_sub         = "#C9D1D9"          # subtítulos y etiquetas de módulo
+    text_muted       = "#8B949E"          # texto de apoyo
+    text_hint        = "#484F58"          # micro-textos muy secundarios
+
+    # Bordes
+    border_card      = "#21262D"          # borde de tarjetas: muy sutil
+    border_input     = "#30363D"          # borde inferior de inputs
+    border_focus     = "#58A6FF"          # foco de input: azul hielo (no rojo)
+
+    # Botones neutros (Siguiente)
+    btn_bg           = "#21262D"
+    btn_text         = "#C9D1D9"
+    btn_border       = "#30363D"
+
     logo_blend       = "normal"
-    stepper_idle     = "#2A3040"
-    stepper_txt_idle = "#4A5568"
-    pill_bg          = "rgba(255,255,255,0.06)"
+
+    # Stepper
+    # Completado: fondo rojo, texto blanco ✓
+    # Activo: fondo rojo sólido, texto blanco — NUNCA outline rojo + texto rojo
+    # Inactivo: fondo neutro oscuro, texto gris
+    step_done_bg     = "#E3000F"
+    step_done_txt    = "#FFFFFF"
+    step_active_bg   = "#E3000F"
+    step_active_txt  = "#FFFFFF"
+    step_idle_bg     = "#21262D"
+    step_idle_txt    = "#484F58"
+    step_conn_done   = "#E3000F"
+    step_conn_idle   = "#21262D"
+
+    # Píldoras (radio disfrazado)
+    # Normal: gris translúcido, texto gris legible
+    # Hover: borde blanco suave, texto blanco
+    # Seleccionado: fondo rojo muy suave + borde rojo brillante + TEXTO BLANCO
+    pill_bg          = "rgba(255,255,255,0.05)"
     pill_border      = "rgba(255,255,255,0.10)"
-    pill_color       = "#8B949E"
-    pill_bg_sel      = "rgba(227,0,15,0.18)"
-    pill_border_sel  = "#E3000F"
-    pill_color_sel   = "#FF5560"
-    info_card_bg     = "#1A2030"
+    pill_color       = "#A1AAB5"
+    pill_hover_bg    = "rgba(255,255,255,0.09)"
+    pill_hover_brd   = "rgba(255,255,255,0.22)"
+    pill_hover_txt   = "#FFFFFF"
+    pill_sel_bg      = "rgba(227,0,15,0.15)"
+    pill_sel_border  = "#E3000F"
+    pill_sel_txt     = "#FFFFFF"           # BLANCO sobre rojo suave — jamás texto rojo
+
+    # Tarjetas info (bienvenida)
+    info_card_bg     = "#1C2128"
+    info_card_brd    = "#21262D"
+    # Tarjeta de acento (primera): solo fondo + borde suave, título blanco
+    info_accent_bg   = "rgba(227,0,15,0.08)"
+    info_accent_brd  = "rgba(227,0,15,0.20)"
+    info_accent_ttl  = "#FFFFFF"           # blanco, no rojo
+
+    # Eyebrow y etiqueta de módulo: gris neutro, no rojo
+    eyebrow_color    = "#8B949E"
+    module_tag_color = "#8B949E"
+
+    # Acento de título bienvenida: blanco en oscuro
+    title_span_color = "#FFFFFF"
+
+    # Alerta
+    alert_bg         = "rgba(227,0,15,0.08)"
+    alert_left       = "#E3000F"
+    alert_text       = "#C9D1D9"
+
+    # Métricas admin
+    admin_val_color  = "#FFFFFF"
+
 else:
-    bg_main          = "#F4F6FA"
+    # ── MODO CLARO ─────────────────────────────────────────────────
+    bg_main          = "#F0F2F5"
     bg_card          = "#FFFFFF"
     bg_welcome_card  = "#FFFFFF"
-    text_main        = "#0F172A"
-    text_muted       = "#64748B"
-    border_subtle    = "#E2E8F0"
+
+    text_main        = "#0D1117"
+    text_sub         = "#24292F"
+    text_muted       = "#57606A"
+    text_hint        = "#8C959F"
+
+    border_card      = "#D0D7DE"
+    border_input     = "#D0D7DE"
+    border_focus     = "#E3000F"
+
+    btn_bg           = "#24292F"
     btn_text         = "#FFFFFF"
-    btn_bg           = "#0F172A"
+    btn_border       = "#24292F"
+
     logo_blend       = "multiply"
-    stepper_idle     = "#E2E8F0"
-    stepper_txt_idle = "#94A3B8"
+
+    step_done_bg     = "#E3000F"
+    step_done_txt    = "#FFFFFF"
+    step_active_bg   = "#E3000F"
+    step_active_txt  = "#FFFFFF"
+    step_idle_bg     = "#EAEEF2"
+    step_idle_txt    = "#8C959F"
+    step_conn_done   = "#E3000F"
+    step_conn_idle   = "#EAEEF2"
+
     pill_bg          = "rgba(0,0,0,0.04)"
-    pill_border      = "rgba(0,0,0,0.09)"
-    pill_color       = "#64748B"
-    pill_bg_sel      = "rgba(227,0,15,0.10)"
-    pill_border_sel  = "#E3000F"
-    pill_color_sel   = "#B3000B"
-    info_card_bg     = "#EEF2FF"
+    pill_border      = "rgba(0,0,0,0.10)"
+    pill_color       = "#57606A"
+    pill_hover_bg    = "rgba(0,0,0,0.07)"
+    pill_hover_brd   = "rgba(0,0,0,0.20)"
+    pill_hover_txt   = "#24292F"
+    pill_sel_bg      = "rgba(227,0,15,0.07)"
+    pill_sel_border  = "#E3000F"
+    pill_sel_txt     = "#B91C1C"
+
+    info_card_bg     = "#F6F8FA"
+    info_card_brd    = "#D0D7DE"
+    info_accent_bg   = "rgba(227,0,15,0.05)"
+    info_accent_brd  = "rgba(227,0,15,0.18)"
+    info_accent_ttl  = "#B91C1C"
+
+    eyebrow_color    = "#8C959F"
+    module_tag_color = "#8C959F"
+    title_span_color = "#E3000F"
+
+    alert_bg         = "rgba(227,0,15,0.06)"
+    alert_left       = "#E3000F"
+    alert_text       = "#24292F"
+
+    admin_val_color  = "#E3000F"
 
 # ══════════════════════════════════════════════════════════════════
-#  CSS — DISEÑO PREMIUM MOBILE-FIRST
+#  CSS — SISTEMA DE DISEÑO B2B PREMIUM · WCAG AA
 # ══════════════════════════════════════════════════════════════════
 CSS = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {{
-    --bg-main:         {bg_main};
-    --bg-card:         {bg_card};
-    --text-main:       {text_main};
-    --text-muted:      {text_muted};
-    --border-subtle:   {border_subtle};
-    --btn-text:        {btn_text};
-    --btn-bg:          {btn_bg};
-    --cuc-red:         #E3000F;
-    --cuc-red-hover:   #B3000B;
-    --cuc-red-soft:    rgba(227,0,15,0.10);
-    --stepper-idle:    {stepper_idle};
-    --stepper-txt:     {stepper_txt_idle};
-    --pill-bg:         {pill_bg};
-    --pill-border:     {pill_border};
-    --pill-color:      {pill_color};
-    --pill-bg-sel:     {pill_bg_sel};
-    --pill-border-sel: {pill_border_sel};
-    --pill-color-sel:  {pill_color_sel};
-    --info-card-bg:    {info_card_bg};
-    --welcome-bg:      {bg_welcome_card};
-    --logo-blend:      {logo_blend};
+    --bg-main:          {bg_main};
+    --bg-card:          {bg_card};
+    --welcome-bg:       {bg_welcome_card};
+    --text-main:        {text_main};
+    --text-sub:         {text_sub};
+    --text-muted:       {text_muted};
+    --text-hint:        {text_hint};
+    --border-card:      {border_card};
+    --border-input:     {border_input};
+    --border-focus:     {border_focus};
+    --btn-bg:           {btn_bg};
+    --btn-text:         {btn_text};
+    --btn-border:       {btn_border};
+    --cuc-red:          #E3000F;
+    --cuc-red-dark:     #C0000D;
+    --logo-blend:       {logo_blend};
+
+    --step-done-bg:     {step_done_bg};
+    --step-done-txt:    {step_done_txt};
+    --step-active-bg:   {step_active_bg};
+    --step-active-txt:  {step_active_txt};
+    --step-idle-bg:     {step_idle_bg};
+    --step-idle-txt:    {step_idle_txt};
+    --step-conn-done:   {step_conn_done};
+    --step-conn-idle:   {step_conn_idle};
+
+    --pill-bg:          {pill_bg};
+    --pill-border:      {pill_border};
+    --pill-color:       {pill_color};
+    --pill-hover-bg:    {pill_hover_bg};
+    --pill-hover-brd:   {pill_hover_brd};
+    --pill-hover-txt:   {pill_hover_txt};
+    --pill-sel-bg:      {pill_sel_bg};
+    --pill-sel-border:  {pill_sel_border};
+    --pill-sel-txt:     {pill_sel_txt};
+
+    --info-card-bg:     {info_card_bg};
+    --info-card-brd:    {info_card_brd};
+    --info-accent-bg:   {info_accent_bg};
+    --info-accent-brd:  {info_accent_brd};
+    --info-accent-ttl:  {info_accent_ttl};
+
+    --eyebrow-color:    {eyebrow_color};
+    --module-tag:       {module_tag_color};
+    --title-span:       {title_span_color};
+    --alert-bg:         {alert_bg};
+    --alert-left:       {alert_left};
+    --alert-text:       {alert_text};
+    --admin-val:        {admin_val_color};
 }}
 
 html, body, [class*="css"], .stApp, .stMarkdown,
@@ -218,178 +346,253 @@ footer    {{ visibility: hidden !important; }}
 
 .stApp {{ background-color: var(--bg-main) !important; }}
 
-/* ══ HEADER ════════════════════════════════════════════ */
+/* ══ HEADER ══════════════════════════════════════════════════════ */
 .premium-header {{
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 18px 0 8px 0;
+    padding: 20px 0 10px 0;
 }}
 .premium-header img {{
-    height: 42px;
+    height: 44px;
     object-fit: contain;
-    margin-bottom: 12px;
+    margin-bottom: 14px;
     mix-blend-mode: var(--logo-blend);
 }}
 .premium-header h1 {{
-    font-size: 0.95rem;
-    font-weight: 600;
-    color: var(--text-main);
+    font-size: 0.86rem;
+    font-weight: 400;
+    color: var(--text-muted);
     margin: 0;
-    letter-spacing: 0.02em;
+    letter-spacing: 0.03em;
     text-align: center;
-    line-height: 1.5;
-    max-width: 560px;
+    line-height: 1.65;
+    max-width: 520px;
 }}
 
-/* ══ TARJETAS INFO (BIENVENIDA) ════════════════════════ */
+/* ══ TARJETAS INFO — BIENVENIDA ══════════════════════════════════ */
 .info-cards-row {{
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 12px;
-    margin: 0 0 24px 0;
+    gap: 14px;
+    margin: 0 0 28px 0;
 }}
 .info-card {{
     background: var(--info-card-bg);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--info-card-brd);
     border-radius: 16px;
-    padding: 22px 14px 18px 14px;
+    padding: 26px 16px 22px 16px;
     text-align: center;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    transition: transform 0.22s ease, box-shadow 0.22s ease;
 }}
 .info-card:hover {{
-    transform: translateY(-3px);
-    box-shadow: 0 8px 24px rgba(0,0,0,0.10);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.18);
 }}
-.info-card .ic-icon  {{ font-size: 2rem; display: block; margin-bottom: 10px; line-height: 1; }}
-.info-card .ic-title {{ font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block; }}
-.info-card .ic-desc  {{ font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; display: block; }}
-.info-card.red {{ border-color: rgba(227,0,15,0.25); background: var(--cuc-red-soft); }}
-.info-card.red .ic-title {{ color: var(--cuc-red); }}
+.info-card .ic-icon {{
+    font-size: 2.1rem;
+    display: block;
+    margin-bottom: 12px;
+    line-height: 1;
+}}
+/* Título de tarjeta: siempre --text-main (blanco en oscuro) */
+.info-card .ic-title {{
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-bottom: 6px;
+    display: block;
+    letter-spacing: 0.01em;
+}}
+.info-card .ic-desc {{
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    display: block;
+}}
+/* Tarjeta de acento (primera): solo fondo/borde suave, título de color var */
+.info-card.accent {{
+    background: var(--info-accent-bg);
+    border-color: var(--info-accent-brd);
+}}
+.info-card.accent .ic-title {{
+    color: var(--info-accent-ttl);
+}}
 
-/* ══ BIENVENIDA CARD ═══════════════════════════════════ */
+/* ══ WELCOME CARD ════════════════════════════════════════════════ */
 .welcome-card {{
     background: var(--welcome-bg);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--border-card);
     border-radius: 20px;
-    padding: 32px 28px 24px 28px;
-    margin-bottom: 16px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    padding: 36px 32px 28px 32px;
+    margin-bottom: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.10);
 }}
+/* Eyebrow: gris sutil — NUNCA rojo */
 .welcome-eyebrow {{
-    font-size: 0.70rem;
-    font-weight: 700;
-    color: var(--cuc-red);
+    font-size: 0.68rem;
+    font-weight: 600;
+    color: var(--eyebrow-color);
     text-transform: uppercase;
-    letter-spacing: 0.14em;
-    margin-bottom: 10px;
+    letter-spacing: 0.18em;
+    margin-bottom: 14px;
     display: block;
 }}
 .welcome-title {{
-    font-size: 1.5rem;
+    font-size: 1.65rem;
     font-weight: 800;
     color: var(--text-main);
-    margin: 0 0 20px 0;
-    line-height: 1.3;
+    margin: 0 0 26px 0;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
 }}
-.welcome-title span {{ color: var(--cuc-red); }}
+/* Span de acento: blanco en oscuro, rojo en claro */
+.welcome-title span {{ color: var(--title-span); }}
 
-/* ══ SAAS CARD (PREGUNTAS) ═════════════════════════════ */
+/* ══ SAAS CARD — PREGUNTAS ═══════════════════════════════════════ */
 .saas-card {{
     background-color: var(--bg-card);
-    border: 1px solid var(--border-subtle);
+    border: 1px solid var(--border-card);
     border-radius: 20px;
-    padding: 28px 24px 24px 24px;
-    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
-    margin-bottom: 16px;
+    padding: 32px 28px 28px 28px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08);
+    margin-bottom: 18px;
 }}
 
-/* ══ STEPPER ═══════════════════════════════════════════ */
+/* ══ STEPPER ═════════════════════════════════════════════════════
+   · done   → fondo rojo, texto blanco, sin outline
+   · active → fondo rojo sólido, texto blanco (no hueco rojo+texto rojo)
+   · idle   → fondo gris neutro, texto hint
+════════════════════════════════════════════════════════════════ */
 .stepper-wrap {{
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0;
-    margin: 20px 0 16px 0;
+    margin: 22px 0 18px 0;
 }}
 .step-node {{
-    width: 34px; height: 34px;
+    width: 36px; height: 36px;
     border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
+    font-size: 0.76rem; font-weight: 700; flex-shrink: 0;
     transition: all 0.25s ease;
+    border: 2px solid transparent;
 }}
-.step-node.done   {{ background: var(--cuc-red); color: #fff; border: 2px solid var(--cuc-red); }}
-.step-node.active {{ background: transparent; color: var(--cuc-red); border: 2px solid var(--cuc-red); box-shadow: 0 0 0 5px rgba(227,0,15,0.14); }}
-.step-node.idle   {{ background: var(--stepper-idle); color: var(--stepper-txt); border: 2px solid var(--stepper-idle); }}
-.step-connector   {{ height: 2px; width: 26px; flex-shrink: 0; transition: background 0.25s ease; }}
-.step-connector.done {{ background: var(--cuc-red); }}
-.step-connector.idle {{ background: var(--stepper-idle); }}
+.step-node.done {{
+    background: var(--step-done-bg);
+    color: var(--step-done-txt);
+    border-color: var(--step-done-bg);
+    box-shadow: 0 2px 12px rgba(227,0,15,0.30);
+}}
+.step-node.active {{
+    background: var(--step-active-bg);
+    color: var(--step-active-txt);
+    border-color: var(--step-active-bg);
+    box-shadow: 0 0 0 5px rgba(227,0,15,0.16), 0 2px 14px rgba(227,0,15,0.32);
+}}
+.step-node.idle {{
+    background: var(--step-idle-bg);
+    color: var(--step-idle-txt);
+    border-color: var(--step-idle-bg);
+}}
+.step-connector {{
+    height: 2px;
+    width: 28px;
+    flex-shrink: 0;
+    border-radius: 1px;
+    transition: background 0.25s ease;
+}}
+.step-connector.done {{ background: var(--step-conn-done); }}
+.step-connector.idle {{ background: var(--step-conn-idle); }}
 
-/* ══ WIZARD LABEL / TÍTULO ═════════════════════════════ */
+/* ══ ETIQUETA DE MÓDULO — NUNCA rojo ════════════════════════════ */
 .wizard-step {{
-    font-size: 0.73rem; font-weight: 600; color: var(--cuc-red);
-    text-transform: uppercase; letter-spacing: 0.1em;
-    margin-bottom: 6px; display: block;
+    font-size: 0.69rem;
+    font-weight: 600;
+    color: var(--module-tag);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-bottom: 10px;
+    display: block;
 }}
-.wizard-module-icon {{ font-size: 2.2rem; display: block; margin-bottom: 8px; }}
+.wizard-module-icon {{
+    font-size: 2.4rem;
+    display: block;
+    margin-bottom: 10px;
+    line-height: 1;
+}}
+/* Pregunta principal: blanco puro en oscuro */
 .wizard-title {{
-    font-size: 1.2rem; font-weight: 700; color: var(--text-main);
-    line-height: 1.5; margin: 0 0 6px 0;
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.55;
+    margin: 0 0 8px 0;
+    letter-spacing: -0.01em;
 }}
 
-/* ══ MICRO-TEXTO INSTRUCCIÓN ═══════════════════════════ */
+/* ══ MICRO-TEXTO INSTRUCCIÓN ════════════════════════════════════ */
 .micro-instruccion {{
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin: 0 0 14px 0;
+    font-size: 0.75rem;
+    color: var(--text-hint);
+    margin: 0 0 16px 0;
     display: block;
     font-weight: 400;
 }}
 
-/* ══ HINT VOZ ══════════════════════════════════════════ */
+/* ══ HINT DE VOZ ════════════════════════════════════════════════ */
 .voz-hint {{
     font-style: italic;
-    font-size: 0.78rem;
-    color: var(--text-muted);
-    margin: 4px 0 8px 0;
+    font-size: 0.75rem;
+    color: var(--text-hint);
+    margin: 6px 0 10px 0;
     display: block;
-    opacity: 0.68;
+    opacity: 0.80;
 }}
 
-/* ══ INPUTS ════════════════════════════════════════════ */
+/* ══ INPUTS — foco azul hielo en oscuro ════════════════════════ */
 .stTextInput input, .stTextArea textarea {{
     background-color: transparent !important;
     border: none !important;
-    border-bottom: 2px solid var(--border-subtle) !important;
+    border-bottom: 2px solid var(--border-input) !important;
     border-radius: 0 !important;
     color: var(--text-main) !important;
     font-size: 1.0rem !important;
-    padding: 10px 0 !important;
+    padding: 12px 0 !important;
     box-shadow: none !important;
     transition: border-color 0.2s ease !important;
 }}
 .stTextInput input:focus, .stTextArea textarea:focus {{
-    border-bottom: 2px solid var(--cuc-red) !important;
+    border-bottom: 2px solid var(--border-focus) !important;
     outline: none !important;
 }}
+.stTextInput input::placeholder, .stTextArea textarea::placeholder {{
+    color: var(--text-hint) !important;
+    opacity: 1 !important;
+}}
 .stTextInput label, .stTextArea label {{
-    font-size: 0.80rem !important;
-    color: var(--text-muted) !important;
+    font-size: 0.75rem !important;
+    color: var(--text-hint) !important;
     font-weight: 500 !important;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.06em;
 }}
 
-/* ══ RADIO DISFRAZADO COMO PÍLDORAS ════════════════════ */
+/* ══ PÍLDORAS (RADIO DISFRAZADO) ════════════════════════════════
+   Normal:       fondo gris translúcido  | texto gris claro
+   Hover:        fondo gris un poco más  | borde blanco suave | texto blanco
+   Seleccionado: fondo rojo muy suave    | borde rojo brillante | TEXTO BLANCO
+   ► JAMÁS texto rojo en ningún estado
+════════════════════════════════════════════════════════════════ */
 div[data-testid="stRadio"] > div[role="radiogroup"] {{
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: wrap !important;
-    gap: 8px !important;
+    gap: 9px !important;
     align-items: center !important;
-    margin: 2px 0 10px 0 !important;
+    margin: 4px 0 14px 0 !important;
 }}
 div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
     display: inline-flex !important;
@@ -399,9 +602,9 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
     border: 1.5px solid var(--pill-border) !important;
     color: var(--pill-color) !important;
     border-radius: 24px !important;
-    font-size: 0.86rem !important;
+    font-size: 0.84rem !important;
     font-weight: 500 !important;
-    padding: 8px 16px !important;
+    padding: 9px 18px !important;
     cursor: pointer !important;
     transition: background 0.15s ease, border-color 0.15s ease,
                 color 0.15s ease, transform 0.12s ease,
@@ -411,10 +614,11 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
     white-space: nowrap !important;
 }}
 div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {{
-    border-color: var(--pill-border-sel) !important;
-    color: var(--pill-color-sel) !important;
+    background: var(--pill-hover-bg) !important;
+    border-color: var(--pill-hover-brd) !important;
+    color: var(--pill-hover-txt) !important;
     transform: translateY(-1px) !important;
-    box-shadow: 0 3px 10px rgba(227,0,15,0.14) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18) !important;
 }}
 div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {{
     display: none !important;
@@ -427,26 +631,28 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child p {
     padding: 0 !important;
     line-height: inherit !important;
 }}
+/* Seleccionado: fondo rojo suave, borde rojo, TEXTO BLANCO */
 div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {{
-    background: var(--pill-bg-sel) !important;
-    border-color: var(--pill-border-sel) !important;
-    color: var(--pill-color-sel) !important;
-    font-weight: 700 !important;
-    box-shadow: 0 2px 12px rgba(227,0,15,0.20) !important;
+    background: var(--pill-sel-bg) !important;
+    border-color: var(--pill-sel-border) !important;
+    color: var(--pill-sel-txt) !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 16px rgba(227,0,15,0.22) !important;
     transform: translateY(0) !important;
 }}
 div[data-testid="stRadio"] > label {{
     display: none !important;
 }}
 
-/* ══ BOTONES PRINCIPALES ═══════════════════════════════ */
+/* ══ BOTONES ════════════════════════════════════════════════════ */
+/* Base: neutro oscuro, sin rojo */
 .stButton > button {{
     background-color: var(--btn-bg) !important;
     color: var(--btn-text) !important;
-    border: none !important;
+    border: 1px solid var(--btn-border) !important;
     border-radius: 14px !important;
-    font-weight: 700 !important;
-    font-size: 1.05rem !important;
+    font-weight: 600 !important;
+    font-size: 1.0rem !important;
     padding: 16px 24px !important;
     width: 100% !important;
     transition: all 0.2s ease !important;
@@ -454,124 +660,173 @@ div[data-testid="stRadio"] > label {{
 }}
 .stButton > button:hover {{
     transform: translateY(-2px) !important;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18) !important;
-    opacity: 0.93;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.24) !important;
+    opacity: 1 !important;
 }}
 .stButton > button:active {{
     transform: translateY(0) !important;
     box-shadow: none !important;
-    opacity: 1 !important;
 }}
+
+/* "Finalizar y Enviar" — único botón rojo en el wizard */
 .btn-rojo .stButton > button {{
-    background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
+    background: linear-gradient(135deg, #E3000F 0%, #C0000D 100%) !important;
     color: #FFFFFF !important;
-    box-shadow: 0 4px 18px rgba(227,0,15,0.30) !important;
-    font-size: 1.1rem !important;
+    border: none !important;
+    box-shadow: 0 4px 20px rgba(227,0,15,0.34) !important;
+    font-size: 1.05rem !important;
+    font-weight: 700 !important;
     padding: 18px 24px !important;
 }}
 .btn-rojo .stButton > button:hover {{
-    box-shadow: 0 8px 28px rgba(227,0,15,0.42) !important;
+    box-shadow: 0 8px 32px rgba(227,0,15,0.46) !important;
     transform: translateY(-3px) !important;
-    opacity: 1 !important;
 }}
+
+/* "Iniciar Diagnóstico" — CTA rojo principal */
 .btn-start .stButton > button {{
-    background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
+    background: linear-gradient(135deg, #E3000F 0%, #C0000D 100%) !important;
     color: #FFFFFF !important;
-    box-shadow: 0 6px 24px rgba(227,0,15,0.36) !important;
-    font-size: 1.2rem !important;
+    border: none !important;
+    box-shadow: 0 6px 28px rgba(227,0,15,0.38) !important;
+    font-size: 1.12rem !important;
+    font-weight: 700 !important;
     padding: 20px 24px !important;
     border-radius: 16px !important;
     letter-spacing: 0.02em;
 }}
 .btn-start .stButton > button:hover {{
-    box-shadow: 0 10px 32px rgba(227,0,15,0.46) !important;
+    box-shadow: 0 10px 36px rgba(227,0,15,0.50) !important;
     transform: translateY(-3px) !important;
-    opacity: 1 !important;
 }}
+
+/* "← Atrás" — fantasma neutro */
 .btn-outline .stButton > button {{
     background-color: transparent !important;
     color: var(--text-muted) !important;
-    border: 1.5px solid var(--border-subtle) !important;
-    font-size: 0.95rem !important;
-    padding: 14px 24px !important;
+    border: 1.5px solid var(--border-input) !important;
+    font-size: 0.92rem !important;
+    font-weight: 500 !important;
+    padding: 14px 20px !important;
+    box-shadow: none !important;
 }}
 .btn-outline .stButton > button:hover {{
     color: var(--text-main) !important;
     border-color: var(--text-muted) !important;
-    background: transparent !important;
+    background: rgba(255,255,255,0.04) !important;
     box-shadow: none !important;
-    opacity: 1 !important;
     transform: none !important;
 }}
 
-/* ══ ALERTA ════════════════════════════════════════════ */
+/* ══ ALERTA ═════════════════════════════════════════════════════ */
 .custom-alert {{
-    background-color: rgba(227, 0, 15, 0.08);
-    border-left: 3px solid var(--cuc-red);
-    padding: 13px 15px;
-    border-radius: 4px;
-    color: var(--text-main);
-    font-size: 0.88rem;
-    margin-bottom: 16px;
-    margin-top: 12px;
+    background-color: var(--alert-bg);
+    border-left: 3px solid var(--alert-left);
+    padding: 13px 16px;
+    border-radius: 6px;
+    color: var(--alert-text);
+    font-size: 0.86rem;
+    margin: 10px 0 14px 0;
+    line-height: 1.55;
 }}
 
-/* ══ BARRA DE PROGRESO ═════════════════════════════════ */
+/* ══ BARRA DE PROGRESO — rojo permitido aquí ════════════════════ */
 .stProgress > div > div > div > div {{
-    background: linear-gradient(90deg, #E3000F, #FF4D57) !important;
+    background: linear-gradient(90deg, #E3000F 0%, #FF3344 100%) !important;
     border-radius: 4px !important;
 }}
 .stProgress > div > div {{
-    background: var(--stepper-idle) !important;
+    background: var(--step-idle-bg) !important;
     border-radius: 4px !important;
-    height: 6px !important;
+    height: 5px !important;
 }}
 
-/* ══ CONFIRMACIÓN ══════════════════════════════════════ */
-.confirm-icon  {{ font-size: 3.5rem; display: block; text-align: center; margin-bottom: 14px; }}
-.confirm-title {{ font-size: 1.6rem; font-weight: 800; color: var(--text-main); text-align: center; margin-bottom: 12px; }}
-.confirm-text  {{ font-size: 0.93rem; color: var(--text-muted); text-align: center; line-height: 1.75; margin-bottom: 20px; }}
+/* ══ CONFIRMACIÓN ═══════════════════════════════════════════════ */
+.confirm-icon {{
+    font-size: 4rem;
+    display: block;
+    text-align: center;
+    margin-bottom: 16px;
+}}
+.confirm-title {{
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--text-main);
+    text-align: center;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+}}
+.confirm-text {{
+    font-size: 0.92rem;
+    color: var(--text-muted);
+    text-align: center;
+    line-height: 1.8;
+    margin-bottom: 22px;
+}}
 .confirm-badge {{
-    display: flex; align-items: center; justify-content: center; gap: 8px;
-    font-size: 0.76rem; font-weight: 600; color: var(--text-muted);
-    letter-spacing: 0.04em; text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.70rem;
+    font-weight: 600;
+    color: var(--text-hint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
 }}
 
-/* ══ ADMIN ═════════════════════════════════════════════ */
+/* ══ ADMIN ══════════════════════════════════════════════════════ */
 .admin-metric {{
     background-color: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    padding: 18px 22px;
+    border: 1px solid var(--border-card);
+    border-radius: 16px;
+    padding: 20px 24px;
     text-align: center;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.10);
 }}
-.admin-metric .value {{ font-size: 2rem; font-weight: 700; color: var(--cuc-red); line-height: 1; margin-bottom: 4px; }}
-.admin-metric .label {{ font-size: 0.76rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }}
+.admin-metric .value {{
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--admin-val);
+    line-height: 1;
+    margin-bottom: 6px;
+    letter-spacing: -0.02em;
+}}
+.admin-metric .label {{
+    font-size: 0.70rem;
+    font-weight: 500;
+    color: var(--text-hint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}}
 
-/* ══ FOOTER ════════════════════════════════════════════ */
+/* ══ FOOTER ═════════════════════════════════════════════════════ */
 .minimal-footer {{
     text-align: center;
-    margin-top: 44px;
-    padding-bottom: 20px;
-    font-size: 0.73rem;
-    color: var(--text-muted);
-    line-height: 1.8;
+    margin-top: 48px;
+    padding-bottom: 24px;
+    font-size: 0.70rem;
+    color: var(--text-hint);
+    line-height: 1.9;
 }}
 
-/* ══ TOGGLE ════════════════════════════════════════════ */
+/* ══ TOGGLE ═════════════════════════════════════════════════════ */
 div[data-testid="stToggle"] label p {{
-    color: var(--text-muted) !important;
-    font-size: 0.80rem !important;
-    font-weight: 600 !important;
+    color: var(--text-hint) !important;
+    font-size: 0.78rem !important;
+    font-weight: 500 !important;
 }}
 
-/* ══ RESPONSIVE MOBILE ═════════════════════════════════ */
+/* ══ RESPONSIVE MOBILE ══════════════════════════════════════════ */
 @media (max-width: 520px) {{
-    .info-cards-row {{ grid-template-columns: 1fr; gap: 10px; }}
-    .welcome-title  {{ font-size: 1.25rem; }}
-    .wizard-title   {{ font-size: 1.05rem; }}
-    .saas-card      {{ padding: 20px 16px; }}
-    .welcome-card   {{ padding: 24px 18px 20px 18px; }}
+    .info-cards-row {{
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }}
+    .welcome-title {{ font-size: 1.35rem; }}
+    .wizard-title  {{ font-size: 1.06rem; }}
+    .saas-card     {{ padding: 22px 18px 20px 18px; }}
+    .welcome-card  {{ padding: 28px 20px 24px 20px; }}
     div[data-testid="stRadio"] > div[role="radiogroup"] {{
         flex-direction: column !important;
     }}
@@ -687,7 +942,7 @@ def render_header() -> None:
     st.markdown(
         f'<div class="premium-header">'
         f'{logo_tag}'
-        f'<h1>Estudio de Rentabilidad y Eficiencia Operativa<br>'
+        f'<h1>Estudio de Rentabilidad y Eficiencia Operativa &nbsp;·&nbsp; '
         f'Sector Superficies Arquitectónicas</h1>'
         f'</div>',
         unsafe_allow_html=True,
@@ -763,7 +1018,7 @@ else:
     if st.session_state.enviado:
         nombre_taller = st.session_state.w_nombre or "su empresa"
         st.markdown(
-            f'<div class="saas-card" style="text-align:center; padding:48px 28px;">'
+            f'<div class="saas-card" style="text-align:center; padding:52px 32px;">'
             f'<span class="confirm-icon">🎉</span>'
             f'<h2 class="confirm-title">¡Diagnóstico enviado!</h2>'
             f'<p class="confirm-text">'
@@ -784,7 +1039,7 @@ else:
             '<span class="welcome-eyebrow">Investigación Aplicada · Universidad de la Costa (CUC)</span>'
             '<h2 class="welcome-title">Diagnóstico Rápido para<br><span>Talleres de Superficies</span></h2>'
             '<div class="info-cards-row">'
-            '<div class="info-card red">'
+            '<div class="info-card accent">'
             '<span class="ic-icon">🔬</span>'
             '<span class="ic-title">¿Qué es esto?</span>'
             '<span class="ic-desc">Validación comercial de CostoMármol · CUC</span>'
