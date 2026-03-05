@@ -318,9 +318,14 @@ header {{ background: transparent !important; box-shadow: none !important; }}
 
 /* Forzado Estricto del Color del Toggle */
 html body div[data-testid="stToggle"] label p,
-html body div[data-testid="stToggle"] label div {{
+html body div[data-testid="stToggle"] label div,
+html body .stApp div[data-testid="stToggle"] label p,
+html body .stApp div[data-testid="stToggle"] label span,
+html body .stApp div[data-testid="stToggle"] p,
+html body .stApp div[data-testid="stToggle"] span {{
     color: {toggle_hex} !important;
     font-weight: 600 !important;
+    -webkit-text-fill-color: {toggle_hex} !important;
 }}
 
 .info-cards-row {{
