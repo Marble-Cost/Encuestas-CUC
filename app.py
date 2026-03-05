@@ -490,7 +490,7 @@ def get_conn() -> GSheetsConnection:
 def cargar_datos() -> pd.DataFrame:
     try:
         conn = get_conn()
-        df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
+        df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=0)
         df = df.dropna(how="all")
         st.session_state["_gs_error"] = False
         if df.empty:
@@ -515,7 +515,7 @@ def guardar_registro(registro: dict) -> bool:
         nueva_fila = pd.DataFrame([registro])
         df_nuevo = pd.concat([df_actual, nueva_fila], ignore_index=True)
         conn.update(data=df_nuevo)
-        st.cache_resource.clear()
+        st.cache_data.clear()
         return True
     except Exception:
         return False
