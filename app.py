@@ -280,7 +280,10 @@ html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stTextArea {{
     font-family: 'Inter', sans-serif !important;
 }}
 
-#MainMenu, header, footer {{ visibility: hidden !important; }}
+/* Se oculta MainMenu y footer, pero NO se oculta header para mantener accesible el botón del sidebar */
+#MainMenu, footer {{ visibility: hidden !important; }}
+header {{ background: transparent !important; box-shadow: none !important; }}
+
 .stApp {{ background-color: var(--bg-main) !important; }}
 
 .stApp > header + .main .block-container, .main .block-container {{
@@ -314,9 +317,10 @@ html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stTextArea {{
     max-width: 520px;
 }}
 
-/* Forzar color del texto del toggle en modo claro */
-div[data-testid="stToggle"] * {{
+/* Forzar color del texto del toggle dinámicamente */
+div[data-testid="stToggle"] label p, div[data-testid="stToggle"] label div {{
     color: var(--text-main) !important;
+    font-weight: 600 !important;
 }}
 
 .info-cards-row {{
@@ -504,7 +508,8 @@ es_admin = (pwd_input == ADMIN_PASSWORD)
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
     with col_toggle:
-        st.toggle("Tema Oscuro", key="tema_oscuro")
+        label_tema = "Tema Claro" if not st.session_state.tema_oscuro else "Tema Oscuro"
+        st.toggle(label_tema, key="tema_oscuro")
 
     logo_tag = ""
     if os.path.exists(LOGO_PATH):
