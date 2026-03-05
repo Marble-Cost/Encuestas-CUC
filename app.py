@@ -317,8 +317,10 @@ header {{ background: transparent !important; box-shadow: none !important; }}
     max-width: 520px;
 }}
 
-/* Forzar color del texto del toggle dinámicamente */
-div[data-testid="stToggle"] label p, div[data-testid="stToggle"] label div {{
+/* Forzar color del texto del toggle dinámicamente con selectores de máxima especificidad */
+html body .stApp div[data-testid="stToggle"] p,
+html body .stApp div[data-testid="stToggle"] div[data-testid="stWidgetLabel"] p,
+html body .stApp div[data-testid="stToggle"] label p {{
     color: var(--text-main) !important;
     font-weight: 600 !important;
 }}
