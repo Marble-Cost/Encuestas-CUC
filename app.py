@@ -32,7 +32,6 @@ COLUMNAS = [
     "p5_inteligencia_negocio",
 ]
 
-# Opciones rápidas por módulo (renderizadas con st.radio horizontal)
 QUICK_OPTIONS = {
     "p1_rentabilidad": [
         "✅ No, todo bien",
@@ -64,8 +63,6 @@ QUICK_OPTIONS = {
     ],
 }
 
-# Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder_base, emoji_modulo)
-# ► Columna "razon_investigacion" eliminada — reemplazada por micro-texto fijo en el render
 PREGUNTAS = [
     (
         "p1_rentabilidad",
@@ -342,7 +339,7 @@ footer    {{ visibility: hidden !important; }}
     line-height: 1.5; margin: 0 0 6px 0;
 }}
 
-/* ══ MICRO-TEXTO INSTRUCCIÓN (reemplaza context-box) ═══ */
+/* ══ MICRO-TEXTO INSTRUCCIÓN ═══════════════════════════ */
 .micro-instruccion {{
     font-size: 0.78rem;
     color: var(--text-muted);
@@ -385,14 +382,7 @@ footer    {{ visibility: hidden !important; }}
     letter-spacing: 0.05em;
 }}
 
-/* ══ RADIO DISFRAZADO COMO PÍLDORAS ════════════════════
-   1. Ponemos el grupo en fila horizontal (flex-wrap).
-   2. Ocultamos el círculo nativo del radio input.
-   3. Estilizamos cada <label> como un botón pill.
-   4. Usamos :has(input:checked) para el estado seleccionado.
-════════════════════════════════════════════════════════ */
-
-/* Grupo: fila horizontal wrappable */
+/* ══ RADIO DISFRAZADO COMO PÍLDORAS ════════════════════ */
 div[data-testid="stRadio"] > div[role="radiogroup"] {{
     display: flex !important;
     flex-direction: row !important;
@@ -401,8 +391,6 @@ div[data-testid="stRadio"] > div[role="radiogroup"] {{
     align-items: center !important;
     margin: 2px 0 10px 0 !important;
 }}
-
-/* Cada label: pill base */
 div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
     display: inline-flex !important;
     align-items: center !important;
@@ -422,20 +410,15 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
     line-height: 1.2 !important;
     white-space: nowrap !important;
 }}
-
 div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {{
     border-color: var(--pill-border-sel) !important;
     color: var(--pill-color-sel) !important;
     transform: translateY(-1px) !important;
     box-shadow: 0 3px 10px rgba(227,0,15,0.14) !important;
 }}
-
-/* Ocultar el círculo dot nativo (primer hijo div del label) */
 div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {{
     display: none !important;
 }}
-
-/* Texto del label: sin overhead de márgenes del dot */
 div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child p {{
     color: inherit !important;
     font-size: inherit !important;
@@ -444,8 +427,6 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child p {
     padding: 0 !important;
     line-height: inherit !important;
 }}
-
-/* Estado SELECCIONADO: usa :has() moderno (soportado en Chrome 105+, Safari 15.4+) */
 div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {{
     background: var(--pill-bg-sel) !important;
     border-color: var(--pill-border-sel) !important;
@@ -454,8 +435,6 @@ div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {
     box-shadow: 0 2px 12px rgba(227,0,15,0.20) !important;
     transform: translateY(0) !important;
 }}
-
-/* Ocultar label de título del radio (lo reemplazamos con HTML propio) */
 div[data-testid="stRadio"] > label {{
     display: none !important;
 }}
@@ -483,7 +462,6 @@ div[data-testid="stRadio"] > label {{
     box-shadow: none !important;
     opacity: 1 !important;
 }}
-
 .btn-rojo .stButton > button {{
     background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
     color: #FFFFFF !important;
@@ -496,7 +474,6 @@ div[data-testid="stRadio"] > label {{
     transform: translateY(-3px) !important;
     opacity: 1 !important;
 }}
-
 .btn-start .stButton > button {{
     background: linear-gradient(135deg, #E3000F 0%, #B3000B 100%) !important;
     color: #FFFFFF !important;
@@ -511,7 +488,6 @@ div[data-testid="stRadio"] > label {{
     transform: translateY(-3px) !important;
     opacity: 1 !important;
 }}
-
 .btn-outline .stButton > button {{
     background-color: transparent !important;
     color: var(--text-muted) !important;
@@ -618,11 +594,6 @@ def get_conn() -> GSheetsConnection:
 
 
 def cargar_datos() -> pd.DataFrame:
-    """
-    Lee el Google Sheet y retorna un DataFrame normalizado.
-    Activa _gs_error=True si la conexión falla para bloquear
-    registros duplicados en correo_existe().
-    """
     try:
         conn = get_conn()
         df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
@@ -638,11 +609,6 @@ def cargar_datos() -> pd.DataFrame:
 
 
 def correo_existe(df: pd.DataFrame, correo: str) -> bool:
-    """
-    Valida la llave primaria (correo) contra la base de datos.
-    Si hubo un error de conexión (_gs_error=True), retorna True
-    como bloqueo preventivo para evitar duplicados silenciosos.
-    """
     if st.session_state.get("_gs_error", False):
         return True
     if df.empty or "correo" not in df.columns:
@@ -654,10 +620,6 @@ def correo_existe(df: pd.DataFrame, correo: str) -> bool:
 
 
 def guardar_registro(registro: dict) -> bool:
-    """
-    Agrega un nuevo registro al Google Sheet.
-    No escribe archivos locales (compatible con Streamlit Community Cloud).
-    """
     try:
         conn = get_conn()
         df_actual = cargar_datos()
@@ -686,7 +648,6 @@ def render_stepper(step_actual: int) -> None:
             cls, contenido = "active", lbl
         else:
             cls, contenido = "idle", lbl
-
         titulo = PREGUNTAS[i][1]
         partes.append(
             f'<div class="step-node {cls}" title="{titulo}">{contenido}</div>'
@@ -694,7 +655,6 @@ def render_stepper(step_actual: int) -> None:
         if i < len(_STEPPER_LABELS) - 1:
             conn_cls = "done" if num < step_actual else "idle"
             partes.append(f'<div class="step-connector {conn_cls}"></div>')
-
     st.markdown(
         f'<div class="stepper-wrap">{"".join(partes)}</div>',
         unsafe_allow_html=True,
@@ -725,13 +685,11 @@ def render_header() -> None:
         logo_tag = f'<img src="data:image/jpeg;base64,{b64}" alt="Universidad de la Costa">'
 
     st.markdown(
-        f"""
-        <div class="premium-header">
-            {logo_tag}
-            <h1>Estudio de Rentabilidad y Eficiencia Operativa<br>
-                Sector Superficies Arquitectónicas</h1>
-        </div>
-        """,
+        f'<div class="premium-header">'
+        f'{logo_tag}'
+        f'<h1>Estudio de Rentabilidad y Eficiencia Operativa<br>'
+        f'Sector Superficies Arquitectónicas</h1>'
+        f'</div>',
         unsafe_allow_html=True,
     )
 
@@ -742,21 +700,15 @@ def render_header() -> None:
 if es_admin:
     render_header()
     st.markdown("## 📊 Panel de Control — CostoMármol")
-
     df = cargar_datos()
 
     if st.session_state.get("_gs_error", False):
-        st.error(
-            "⚠️ No se pudo conectar con Google Sheets. "
-            "Verifique las credenciales en secrets.toml."
-        )
+        st.error("⚠️ No se pudo conectar con Google Sheets. Verifique las credenciales en secrets.toml.")
     elif df.empty:
         st.info("La base de datos aún no tiene registros.")
     else:
         total = len(df)
-        ultima_fecha = (
-            pd.to_datetime(df["timestamp"], errors="coerce").dropna().max()
-        )
+        ultima_fecha = pd.to_datetime(df["timestamp"], errors="coerce").dropna().max()
         ultima_str = (
             ultima_fecha.strftime("%d/%m/%Y %H:%M")
             if not pd.isnull(ultima_fecha)
@@ -811,21 +763,15 @@ else:
     if st.session_state.enviado:
         nombre_taller = st.session_state.w_nombre or "su empresa"
         st.markdown(
-            f"""
-            <div class="saas-card" style="text-align:center; padding:48px 28px;">
-                <span class="confirm-icon">🎉</span>
-                <h2 class="confirm-title">¡Diagnóstico enviado!</h2>
-                <p class="confirm-text">
-                    Las respuestas de <strong>{nombre_taller}</strong> quedaron registradas
-                    de forma segura.<br><br>
-                    Su experiencia es clave para el desarrollo de <strong>CostoMármol</strong>.<br>
-                    ¡Gracias por su tiempo!
-                </p>
-                <div class="confirm-badge">
-                    🏛️ &nbsp;Universidad de la Costa (CUC) · Barranquilla &nbsp;|&nbsp; Uso Académico Exclusivo
-                </div>
-            </div>
-            """,
+            f'<div class="saas-card" style="text-align:center; padding:48px 28px;">'
+            f'<span class="confirm-icon">🎉</span>'
+            f'<h2 class="confirm-title">¡Diagnóstico enviado!</h2>'
+            f'<p class="confirm-text">'
+            f'Las respuestas de <strong>{nombre_taller}</strong> quedaron registradas de forma segura.<br><br>'
+            f'Su experiencia es clave para el desarrollo de <strong>CostoMármol</strong>.<br>'
+            f'¡Gracias por su tiempo!</p>'
+            f'<div class="confirm-badge">🏛️ &nbsp;Universidad de la Costa (CUC) · Barranquilla &nbsp;|&nbsp; Uso Académico Exclusivo</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
         st.stop()
@@ -834,34 +780,26 @@ else:
     if st.session_state.step == 0:
 
         st.markdown(
-            """
-            <div class="welcome-card">
-                <span class="welcome-eyebrow">
-                    Investigación Aplicada · Universidad de la Costa (CUC)
-                </span>
-                <h2 class="welcome-title">
-                    Diagnóstico Rápido para<br>
-                    <span>Talleres de Superficies</span>
-                </h2>
-
-                <div class="info-cards-row">
-                    <div class="info-card red">
-                        <span class="ic-icon">🔬</span>
-                        <span class="ic-title">¿Qué es esto?</span>
-                        <span class="ic-desc">Validación comercial de CostoMármol · CUC</span>
-                    </div>
-                    <div class="info-card">
-                        <span class="ic-icon">⚡</span>
-                        <span class="ic-title">Menos de 3 min</span>
-                        <span class="ic-desc">Solo 5 preguntas cortas sobre su taller</span>
-                    </div>
-                    <div class="info-card">
-                        <span class="ic-icon">🔒</span>
-                        <span class="ic-title">100% Privado</span>
-                        <span class="ic-desc">Protegido por Ley 1581 de 2012</span>
-                    </div>
-                </div>
-            """,
+            '<div class="welcome-card">'
+            '<span class="welcome-eyebrow">Investigación Aplicada · Universidad de la Costa (CUC)</span>'
+            '<h2 class="welcome-title">Diagnóstico Rápido para<br><span>Talleres de Superficies</span></h2>'
+            '<div class="info-cards-row">'
+            '<div class="info-card red">'
+            '<span class="ic-icon">🔬</span>'
+            '<span class="ic-title">¿Qué es esto?</span>'
+            '<span class="ic-desc">Validación comercial de CostoMármol · CUC</span>'
+            '</div>'
+            '<div class="info-card">'
+            '<span class="ic-icon">⚡</span>'
+            '<span class="ic-title">Menos de 3 min</span>'
+            '<span class="ic-desc">Solo 5 preguntas cortas sobre su taller</span>'
+            '</div>'
+            '<div class="info-card">'
+            '<span class="ic-icon">🔒</span>'
+            '<span class="ic-title">100% Privado</span>'
+            '<span class="ic-desc">Protegido por Ley 1581 de 2012</span>'
+            '</div>'
+            '</div>',
             unsafe_allow_html=True,
         )
 
@@ -888,29 +826,20 @@ else:
 
             if not nombre_ok or not correo_ok:
                 st.markdown(
-                    '<div class="custom-alert">'
-                    "⚠️ Complete ambos campos correctamente para continuar."
-                    "</div>",
+                    '<div class="custom-alert">⚠️ Complete ambos campos correctamente para continuar.</div>',
                     unsafe_allow_html=True,
                 )
             else:
                 with st.spinner("Verificando registro..."):
                     df_check = cargar_datos()
-
                     if st.session_state.get("_gs_error", False):
                         st.markdown(
-                            '<div class="custom-alert">'
-                            "⚠️ No fue posible conectar con la base de datos. "
-                            "Intente de nuevo en unos instantes."
-                            "</div>",
+                            '<div class="custom-alert">⚠️ No fue posible conectar con la base de datos. Intente de nuevo en unos instantes.</div>',
                             unsafe_allow_html=True,
                         )
                     elif correo_existe(df_check, correo_input):
                         st.markdown(
-                            '<div class="custom-alert">'
-                            "Este correo ya completó el diagnóstico. "
-                            "Cada empresa participa una sola vez. ¡Gracias!"
-                            "</div>",
+                            '<div class="custom-alert">Este correo ya completó el diagnóstico. Cada empresa participa una sola vez. ¡Gracias!</div>',
                             unsafe_allow_html=True,
                         )
                     else:
@@ -930,7 +859,6 @@ else:
         es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
         opciones  = QUICK_OPTIONS[clave]
 
-        # Recuperar opción guardada y calcular su índice para st.radio
         opcion_guardada = st.session_state.get(qq_key)
         idx_radio = (
             opciones.index(opcion_guardada)
@@ -941,35 +869,24 @@ else:
         render_stepper(st.session_state.step)
         st.progress((st.session_state.step - 1) / TOTAL_PREGUNTAS)
 
-        # ── Cabecera de tarjeta — SIN context-box / jerga académica ──
         st.markdown(
-            f"""
-            <div class="saas-card" style="margin-top:14px;">
-                <span class="wizard-step">
-                    Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}
-                </span>
-                <span class="wizard-module-icon">{emoji}</span>
-                <h3 class="wizard-title">{pregunta}</h3>
-                <span class="micro-instruccion">
-                    Seleccione una opción rápida o escriba su respuesta:
-                </span>
-            """,
+            f'<div class="saas-card" style="margin-top:14px;">'
+            f'<span class="wizard-step">Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}</span>'
+            f'<span class="wizard-module-icon">{emoji}</span>'
+            f'<h3 class="wizard-title">{pregunta}</h3>'
+            f'<span class="micro-instruccion">Seleccione una opción rápida o escriba su respuesta:</span>',
             unsafe_allow_html=True,
         )
 
-        # ── SELECCIÓN RÁPIDA: st.radio disfrazado como píldoras ──
         seleccion_rapida = st.radio(
-            label="Selección rápida",          # oculto por CSS
+            label="Selección rápida",
             options=opciones,
-            index=idx_radio,                   # restaura selección previa
+            index=idx_radio,
             horizontal=True,
             label_visibility="collapsed",
             key=f"radio_{st.session_state.step}",
         )
 
-        # ── PLACEHOLDER DINÁMICO según selección ─────────────────
-        # Si el usuario ya tocó una píldora → invitamos al detalle (opcional)
-        # Si aún no eligió nada              → mostramos el ejemplo de guía
         if seleccion_rapida:
             area_label       = "¿Desea agregar algún detalle adicional? (Opcional)"
             area_placeholder = ""
@@ -977,7 +894,6 @@ else:
             area_label       = "O escriba su respuesta aquí:"
             area_placeholder = placeholder_base
 
-        # ── HINT DE VOZ ──────────────────────────────────────────
         st.markdown(
             '<span class="voz-hint">🎙️ Consejo: Usa el micrófono de tu teclado para responder más rápido.</span>',
             unsafe_allow_html=True,
@@ -1009,8 +925,6 @@ else:
                 st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
 
             if st.button(label_next, key=f"next_{st.session_state.step}", use_container_width=True):
-
-                # ── Combinar para NLP (formato: "[opcion] texto libre") ──
                 texto_libre = respuesta_actual.strip()
                 if seleccion_rapida and texto_libre:
                     texto_combinado = f"[{seleccion_rapida}] {texto_libre}"
@@ -1021,9 +935,7 @@ else:
 
                 if not texto_combinado:
                     st.markdown(
-                        '<div class="custom-alert">'
-                        "⚠️ Elija una opción o escriba su respuesta antes de continuar."
-                        "</div>",
+                        '<div class="custom-alert">⚠️ Elija una opción o escriba su respuesta antes de continuar.</div>',
                         unsafe_allow_html=True,
                     )
                 else:
@@ -1047,10 +959,7 @@ else:
                                 st.rerun()
                             else:
                                 st.markdown(
-                                    '<div class="custom-alert">'
-                                    "⚠️ Ocurrió un error al guardar. Intente de nuevo. "
-                                    "Si el problema persiste, contacte al equipo de investigación."
-                                    "</div>",
+                                    '<div class="custom-alert">⚠️ Ocurrió un error al guardar. Intente de nuevo. Si el problema persiste, contacte al equipo de investigación.</div>',
                                     unsafe_allow_html=True,
                                 )
                     else:
@@ -1064,12 +973,10 @@ else:
 
     # ── Footer ─────────────────────────────────────────────────────
     st.markdown(
-        """
-        <div class="minimal-footer">
-            Protegido por Ley 1581 de 2012 (Habeas Data) · Uso Académico Exclusivo<br>
-            Universidad de la Costa (CUC) · Barranquilla, Colombia<br>
-            Validación Comercial — <strong>CostoMármol</strong>
-        </div>
-        """,
+        '<div class="minimal-footer">'
+        'Protegido por Ley 1581 de 2012 (Habeas Data) · Uso Académico Exclusivo<br>'
+        'Universidad de la Costa (CUC) · Barranquilla, Colombia<br>'
+        'Validación Comercial — <strong>CostoMármol</strong>'
+        '</div>',
         unsafe_allow_html=True,
     )
