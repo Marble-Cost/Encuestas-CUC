@@ -253,25 +253,54 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
                  fill=True, new_x="LMARGIN", new_y="NEXT")
         pdf.ln(3)
 
-        # Respuestas: etiqueta bold → multi_cell para respuesta larga
+        # Respuestas: separación estructural opción rápida / texto abierto
         for col in COLS_RESPUESTAS:
-            etiqueta  = ETIQUETAS_PDF.get(col, col)
-            respuesta = _limpiar(str(row.get(col, "")))
-            if not respuesta or respuesta.strip() in ("nan", "None", ""):
-                respuesta = "Sin respuesta registrada"
+            etiqueta      = ETIQUETAS_PDF.get(col, col)
+            respuesta_raw = str(row.get(col, ""))
 
-            # Etiqueta: negrita, color marino, FONDO SUTIL que la distingue visualmente
+            # Normalizar separadores de datos antiguos y nuevos
+            respuesta_raw = respuesta_raw.replace(" — ", " || ").replace(" | ", " || ")
+            if respuesta_raw.startswith("[") and "] " in respuesta_raw:
+                respuesta_raw = respuesta_raw.replace("] ", " || ", 1).replace("[", "", 1)
+
+            # Etiqueta de la pregunta (diseño intacto)
             pdf.set_fill_color(*_ETIQUETA_FONDO)
             pdf.set_text_color(*_AZ_MARINO)
             pdf.set_font("Helvetica", "B", 8)
             pdf.cell(w=0, h=6, text=f"  {etiqueta.upper()}",
                      fill=True, new_x="LMARGIN", new_y="NEXT")
 
-            # Respuesta en normal, negro, multi-línea automática
-            pdf.set_text_color(*_NEGRO)
-            pdf.set_font("Helvetica", "", 8)
-            pdf.multi_cell(w=0, h=5, text=respuesta)
-            pdf.ln(3)  # espacio respirable entre preguntas
+            if not respuesta_raw or respuesta_raw.strip() in ("nan", "None", ""):
+                pdf.set_text_color(*_NEGRO)
+                pdf.set_font("Helvetica", "I", 8)
+                pdf.multi_cell(w=0, h=5, text="  Sin respuesta registrada")
+                pdf.ln(3)
+                continue
+
+            if " || " in respuesta_raw:
+                partes  = respuesta_raw.split(" || ", 1)
+                q_clean = _limpiar(partes[0])
+                t_clean = _limpiar(partes[1])
+
+                # Renderizar Opción Rápida
+                pdf.set_text_color(*_GRIS_TEXTO)
+                pdf.set_font("Helvetica", "B", 8)
+                pdf.cell(w=0, h=5, text=f"  Opcion elegida: {q_clean}",
+                         new_x="LMARGIN", new_y="NEXT")
+
+                # Renderizar Texto Abierto
+                if t_clean:
+                    pdf.set_text_color(*_NEGRO)
+                    pdf.set_font("Helvetica", "", 8)
+                    pdf.multi_cell(w=0, h=5, text=f"  Detalle: {t_clean}")
+            else:
+                # Respuesta única (solo texto o solo opción)
+                resp_clean = _limpiar(respuesta_raw)
+                pdf.set_text_color(*_NEGRO)
+                pdf.set_font("Helvetica", "", 8)
+                pdf.multi_cell(w=0, h=5, text=f"  {resp_clean}")
+
+            pdf.ln(3)
 
         # Línea separadora y espacio amplio antes del siguiente taller
         pdf.set_draw_color(*_GRIS_LINEA)
@@ -823,10 +852,10 @@ else:
                     st.session_state[qq_key] = seleccion_rapida
                     if es_ultima:
                         def armar_respuesta(q_val, t_val):
-                            """Combina opción rápida y texto libre elegantemente, sin corchetes."""
+                            """Combina opción rápida y texto libre con separador ASCII seguro."""
                             q = q_val if q_val else ""
                             t = (t_val or "").strip()
-                            if q and t: return f"{q} — {t}"
+                            if q and t: return f"{q} || {t}"
                             if q: return q
                             return t
                         registro = {
