@@ -110,6 +110,7 @@ _defaults = {
     "w_nombre": "",
     "w_correo": "",
     "tema_oscuro": True,
+    "admin_auth": False,
     "r_p1": "", "r_p2": "", "r_p3": "", "r_p4": "", "r_p5": "",
     "q_p1": None, "q_p2": None, "q_p3": None, "q_p4": None, "q_p5": None,
     "_gs_error": False,
@@ -135,7 +136,7 @@ QQ_KEYS = {
 TOTAL_PREGUNTAS = len(PREGUNTAS)
 
 # ══════════════════════════════════════════════════════════════════
-#  PALETA DE COLOR — REDISEÑO B2B PREMIUM
+#  PALETA DE COLOR Y CSS DINÁMICO
 # ══════════════════════════════════════════════════════════════════
 if st.session_state.tema_oscuro:
     bg_main          = "#0D1117"
@@ -180,6 +181,7 @@ if st.session_state.tema_oscuro:
     alert_left       = "#E3000F"
     alert_text       = "#C9D1D9"
     admin_val_color  = "#FFFFFF"
+    toggle_hex       = "#FFFFFF"  # Forzado estricto oscuro
 else:
     bg_main          = "#F0F2F5"
     bg_card          = "#FFFFFF"
@@ -223,10 +225,8 @@ else:
     alert_left       = "#E3000F"
     alert_text       = "#24292F"
     admin_val_color  = "#E3000F"
+    toggle_hex       = "#0D1117" # Forzado estricto claro
 
-# ══════════════════════════════════════════════════════════════════
-#  CSS — SISTEMA DE DISEÑO B2B PREMIUM
-# ══════════════════════════════════════════════════════════════════
 CSS = f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -280,7 +280,6 @@ html, body, [class*="css"], .stApp, .stMarkdown, .stTextInput, .stTextArea {{
     font-family: 'Inter', sans-serif !important;
 }}
 
-/* Se oculta MainMenu y footer, pero NO se oculta header para mantener accesible el botón del sidebar */
 #MainMenu, footer {{ visibility: hidden !important; }}
 header {{ background: transparent !important; box-shadow: none !important; }}
 
@@ -317,11 +316,10 @@ header {{ background: transparent !important; box-shadow: none !important; }}
     max-width: 520px;
 }}
 
-/* Forzar color del texto del toggle dinámicamente con selectores de máxima especificidad */
-html body .stApp div[data-testid="stToggle"] p,
-html body .stApp div[data-testid="stToggle"] div[data-testid="stWidgetLabel"] p,
-html body .stApp div[data-testid="stToggle"] label p {{
-    color: var(--text-main) !important;
+/* Forzado Estricto del Color del Toggle */
+html body div[data-testid="stToggle"] label p,
+html body div[data-testid="stToggle"] label div {{
+    color: {toggle_hex} !important;
     font-weight: 600 !important;
 }}
 
@@ -497,12 +495,26 @@ def render_stepper(step_actual: int) -> None:
     st.markdown(f'<div class="stepper-wrap">{"".join(partes)}</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════
-#  SIDEBAR — ACCESO ADMIN OCULTO
+#  SIDEBAR — ACCESO ADMIN SEGURO
 # ══════════════════════════════════════════════════════════════════
 with st.sidebar:
     st.markdown("### 🔐 Acceso Admin")
-    pwd_input = st.text_input("Contraseña", type="password", key="admin_pwd")
-es_admin = (pwd_input == ADMIN_PASSWORD)
+    
+    if not st.session_state.admin_auth:
+        pwd_input = st.text_input("Contraseña", type="password")
+        if st.button("Iniciar Sesión", use_container_width=True):
+            if pwd_input == ADMIN_PASSWORD:
+                st.session_state.admin_auth = True
+                st.rerun()
+            else:
+                st.error("Contraseña incorrecta")
+    else:
+        st.success("Sesión iniciada")
+        if st.button("Cerrar Sesión", use_container_width=True):
+            st.session_state.admin_auth = False
+            st.rerun()
+
+es_admin = st.session_state.admin_auth
 
 # ══════════════════════════════════════════════════════════════════
 #  HEADER COMPARTIDO
@@ -686,7 +698,7 @@ else:
 
         respuesta_actual = st.text_area(
             label=area_label,
-            value=st.session_state[ss_key],
+            value=st.session_state[ss_key],  # Aquí solo se carga el texto puro, sin duplicaciones
             placeholder=area_placeholder,
             height=115,
             key=f"resp_{st.session_state.step}",
@@ -698,7 +710,8 @@ else:
         with col_back:
             st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
             if st.button("← Atrás", key=f"back_{st.session_state.step}", use_container_width=True):
-                st.session_state[ss_key] = respuesta_actual
+                # Guardamos el borrador tal cual está
+                st.session_state[ss_key] = respuesta_actual.strip()
                 st.session_state[qq_key] = seleccion_rapida
                 st.session_state.step -= 1
                 st.rerun()
@@ -711,29 +724,32 @@ else:
 
             if st.button(label_next, key=f"next_{st.session_state.step}", use_container_width=True):
                 texto_libre = respuesta_actual.strip()
-                if seleccion_rapida and texto_libre:
-                    texto_combinado = f"[{seleccion_rapida}] {texto_libre}"
-                elif seleccion_rapida:
-                    texto_combinado = seleccion_rapida
-                else:
-                    texto_combinado = texto_libre
 
-                if not texto_combinado:
-                    st.markdown('<div class="custom-alert">⚠️ Elija una opción o escriba su respuesta antes de continuar.</div>', unsafe_allow_html=True)
+                if not seleccion_rapida and not texto_libre:
+                    st.markdown('<div class="custom-alert">⚠️ Elija una opción rápida o escriba su respuesta antes de continuar.</div>', unsafe_allow_html=True)
                 else:
-                    st.session_state[ss_key] = texto_combinado
+                    # Guardamos los estados puros
+                    st.session_state[ss_key] = texto_libre
                     st.session_state[qq_key] = seleccion_rapida
 
                     if es_ultima:
+                        # Función para construir la cadena combinada solo al momento de guardar
+                        def armar_respuesta(q_val, t_val):
+                            q = q_val if q_val else ""
+                            t = (t_val or "").strip()
+                            if q and t: return f"[{q}] {t}"
+                            if q: return q
+                            return t
+
                         registro = {
                             "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             "nombre_taller":           st.session_state.w_nombre,
                             "correo":                  st.session_state.w_correo,
-                            "p1_rentabilidad":         st.session_state.r_p1,
-                            "p2_tiempo_operativo":     st.session_state.r_p2,
-                            "p3_normatividad_aiu":     st.session_state.r_p3,
-                            "p4_percepcion_valor":     st.session_state.r_p4,
-                            "p5_inteligencia_negocio": st.session_state.r_p5,
+                            "p1_rentabilidad":         armar_respuesta(st.session_state.q_p1, st.session_state.r_p1),
+                            "p2_tiempo_operativo":     armar_respuesta(st.session_state.q_p2, st.session_state.r_p2),
+                            "p3_normatividad_aiu":     armar_respuesta(st.session_state.q_p3, st.session_state.r_p3),
+                            "p4_percepcion_valor":     armar_respuesta(st.session_state.q_p4, st.session_state.r_p4),
+                            "p5_inteligencia_negocio": armar_respuesta(st.session_state.q_p5, st.session_state.r_p5),
                         }
                         with st.spinner("Registrando sus respuestas..."):
                             if guardar_registro(registro):
