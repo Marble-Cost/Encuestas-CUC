@@ -117,13 +117,13 @@ def _limpiar(texto: str) -> str:
             res.append(ch)
         except UnicodeEncodeError:
             n = unicodedata.name(ch, "").lower()
-            if "check" in n:       res.append("[OK]")
-            elif "warning" in n:   res.append("[!]")
+            if "check" in n:            res.append("[OK]")
+            elif "warning" in n:        res.append("[!]")
             elif "cross" in n or "x mark" in n: res.append("[X]")
             elif "clock" in n or "timer" in n:  res.append("[tiempo]")
-            elif "chart" in n:     res.append("[grafico]")
-            elif "red circle" in n: res.append("[ALTO]")
-            else:                  res.append(" ")
+            elif "chart" in n:          res.append("[grafico]")
+            elif "red circle" in n:     res.append("[ALTO]")
+            else:                       res.append(" ")
     return "".join(res)
 
 def generar_pdf(fila: pd.Series) -> bytes:
@@ -214,7 +214,7 @@ TOTAL_PREGUNTAS = len(PREGUNTAS)
 #  PALETA DINÁMICA
 # ══════════════════════════════════════════════════════════════════
 if st.session_state.tema_oscuro:
-    bg_main="$0D1117"; bg_card="#161B22"; bg_welcome_card="#161B22"
+    bg_main="#0D1117"; bg_card="#161B22"; bg_welcome_card="#161B22"
     text_main="#FFFFFF"; text_sub="#C9D1D9"; text_muted="#8B949E"; text_hint="#484F58"
     border_card="#21262D"; border_input="#30363D"; border_focus="#58A6FF"
     btn_bg="#21262D"; btn_text="#C9D1D9"; btn_border="#30363D"
@@ -245,10 +245,6 @@ else:
     alert_bg="rgba(227,0,15,0.06)"; alert_left="#E3000F"; alert_text="#24292F"
     admin_val_color="#E3000F"
     madur_card_bg="#F6F8FA"; madur_card_brd="#D0D7DE"; madur_title_col="#0D1117"; madur_texto_col="#57606A"
-
-# Fix typo in dark mode
-if st.session_state.tema_oscuro:
-    bg_main = "#0D1117"
 
 
 CSS = f"""
@@ -293,12 +289,48 @@ header{{background:transparent!important;box-shadow:none!important;}}
 .welcome-title{{font-size:1.65rem;font-weight:800;color:var(--text-main);margin:0 0 26px 0;line-height:1.25;letter-spacing:-0.02em;}}
 .welcome-title span{{color:var(--title-span);}}
 .saas-card{{background-color:var(--bg-card);border:1px solid var(--border-card);border-radius:20px;padding:32px 28px 28px 28px;box-shadow:0 8px 32px rgba(0,0,0,0.14),0 2px 8px rgba(0,0,0,0.08);margin-bottom:18px;}}
-.madurez-card{{background:var(--madur-card-bg);border:1px solid var(--madur-card-brd);border-radius:20px;padding:32px 28px 28px 28px;margin:24px 0 18px 0;box-shadow:0 8px 32px rgba(0,0,0,0.14);text-align:center;}}
+
+/* ── MADUREZ — centrado estricto con Flexbox ── */
+.madurez-card{{
+    background:var(--madur-card-bg);
+    border:1px solid var(--madur-card-brd);
+    border-radius:20px;
+    padding:32px 28px 28px 28px;
+    margin:24px 0 18px 0;
+    box-shadow:0 8px 32px rgba(0,0,0,0.14);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    text-align:center;
+}}
 .madurez-emoji{{font-size:3.2rem;display:block;margin-bottom:10px;line-height:1;}}
 .madurez-nivel{{font-size:1.35rem;font-weight:800;color:var(--madur-title);margin-bottom:6px;letter-spacing:-0.01em;display:block;}}
-.madurez-badge{{display:inline-block;background:rgba(0,122,195,0.12);border:1px solid rgba(0,122,195,0.30);color:#007AC3;font-size:0.72rem;font-weight:700;letter-spacing:0.10em;text-transform:uppercase;border-radius:20px;padding:4px 14px;margin-bottom:16px;}}
-.madurez-consejo{{font-size:0.88rem;color:var(--madur-texto);line-height:1.65;max-width:480px;margin:0 auto;}}
+.madurez-badge{{
+    display:inline-block;
+    background:rgba(0,122,195,0.12);
+    border:1px solid rgba(0,122,195,0.30);
+    color:#007AC3;
+    font-size:0.72rem;
+    font-weight:700;
+    letter-spacing:0.10em;
+    text-transform:uppercase;
+    border-radius:20px;
+    padding:4px 14px;
+    margin-bottom:16px;
+    margin-left:auto;
+    margin-right:auto;
+}}
+.madurez-consejo{{
+    font-size:0.88rem;
+    color:var(--madur-texto);
+    line-height:1.65;
+    max-width:480px;
+    margin:0 auto;
+    text-align:center;
+}}
 .madurez-puntaje{{font-size:0.72rem;color:var(--text-hint);margin-top:14px;display:block;}}
+
 .stepper-wrap{{display:flex;align-items:center;justify-content:center;gap:0;margin:22px 0 18px 0;}}
 .step-node{{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.76rem;font-weight:700;flex-shrink:0;transition:all 0.25s ease;border:2px solid transparent;}}
 .step-node.done{{background:var(--step-done-bg);color:var(--step-done-txt);border-color:var(--step-done-bg);box-shadow:0 2px 12px rgba(227,0,15,0.30);}}
@@ -352,7 +384,7 @@ div[data-testid="stRadio"]>label{{display:none!important;}}
     .info-cards-row{{grid-template-columns:1fr;gap:10px;}}
     .welcome-title{{font-size:1.35rem;}}
     .wizard-title{{font-size:1.06rem;}}
-    .saas-card{{padding:22px 18px 20px 18px;}}
+    .saas-card{{padding:16px 14px 16px 14px;}}
     .welcome-card{{padding:28px 20px 24px 20px;}}
     div[data-testid="stRadio"]>div[role="radiogroup"]{{flex-direction:column!important;}}
     div[data-testid="stRadio"]>div[role="radiogroup"]>label{{width:100%!important;justify-content:flex-start!important;}}
@@ -411,7 +443,7 @@ def render_stepper(step_actual: int) -> None:
     partes = []
     for i, lbl in enumerate(_STEPPER_LABELS):
         num = i + 1
-        if num < step_actual:   cls, contenido = "done", "✓"
+        if num < step_actual:    cls, contenido = "done", "&#10003;"
         elif num == step_actual: cls, contenido = "active", lbl
         else:                    cls, contenido = "idle", lbl
         titulo = PREGUNTAS[i][1]
@@ -443,7 +475,7 @@ with st.sidebar:
 es_admin = st.session_state.admin_auth
 
 # ══════════════════════════════════════════════════════════════════
-#  HEADER
+#  HEADER — función reutilizable
 # ══════════════════════════════════════════════════════════════════
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
@@ -469,6 +501,15 @@ def render_header() -> None:
         unsafe_allow_html=True,
     )
 
+def render_footer() -> None:
+    st.markdown(
+        '<div class="minimal-footer">'
+        'Protegido por Ley 1581 de 2012 (Habeas Data) · Uso Académico Exclusivo<br>'
+        'Universidad de la Costa (CUC) · Barranquilla, Colombia<br>'
+        'Validación Comercial — <strong>CostoMármol</strong>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
 # ══════════════════════════════════════════════════════════════════
 #  VISTA A — ADMINISTRADOR
@@ -546,13 +587,23 @@ if es_admin:
 
         st.markdown('</div>', unsafe_allow_html=True)
 
+    render_footer()
+
 # ══════════════════════════════════════════════════════════════════
 #  VISTA B — ENCUESTADO
 # ══════════════════════════════════════════════════════════════════
 else:
-    render_header()
+    step      = st.session_state.step
+    enviado   = st.session_state.enviado
+    en_wizard = (1 <= step <= TOTAL_PREGUNTAS)
 
-    if st.session_state.enviado:
+    # Header y footer SOLO en bienvenida (step 0) y pantalla de éxito
+    # Durante el wizard (steps 1-5) se omiten para máximo espacio vertical
+    if not en_wizard:
+        render_header()
+
+    # ── Pantalla de éxito + Termómetro de Madurez ────────────────
+    if enviado:
         nombre_taller = st.session_state.w_nombre or "su empresa"
         st.markdown(
             '<div class="saas-card" style="text-align:center; padding:52px 32px;">'
@@ -580,9 +631,12 @@ else:
         )
         if puntaje_max > 0:
             st.progress(puntaje / puntaje_max)
+
+        render_footer()
         st.stop()
 
-    if st.session_state.step == 0:
+    # ── PASO 0: Bienvenida ────────────────────────────────────────
+    if step == 0:
         st.markdown(
             '<div class="welcome-card">'
             '<span class="welcome-eyebrow">Investigación Aplicada · Universidad de la Costa (CUC)</span>'
@@ -620,21 +674,24 @@ else:
                         st.session_state.step = 1
                         st.rerun()
 
-    elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
-        idx = st.session_state.step - 1
+        render_footer()
+
+    # ── PASOS 1–5: Wizard modo enfoque (sin header ni footer) ─────
+    elif en_wizard:
+        idx = step - 1
         clave, titulo_corto, pregunta, placeholder_base, emoji = PREGUNTAS[idx]
         ss_key = SS_KEYS[clave]; qq_key = QQ_KEYS[clave]
-        es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
+        es_ultima = (step == TOTAL_PREGUNTAS)
         opciones = QUICK_OPTIONS[clave]
         opcion_guardada = st.session_state.get(qq_key)
         idx_radio = opciones.index(opcion_guardada) if opcion_guardada and opcion_guardada in opciones else None
 
-        render_stepper(st.session_state.step)
-        st.progress((st.session_state.step - 1) / TOTAL_PREGUNTAS)
+        render_stepper(step)
+        st.progress((step - 1) / TOTAL_PREGUNTAS)
 
         st.markdown(
             '<div class="saas-card" style="margin-top:14px;">'
-            f'<span class="wizard-step">Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}</span>'
+            f'<span class="wizard-step">Módulo {step} de {TOTAL_PREGUNTAS} — {titulo_corto}</span>'
             f'<span class="wizard-module-icon">{emoji}</span>'
             f'<h3 class="wizard-title">{pregunta}</h3>'
             '<span class="micro-instruccion">Seleccione una opción rápida o escriba su respuesta:</span>',
@@ -643,7 +700,7 @@ else:
 
         seleccion_rapida = st.radio(
             label="Selección rápida", options=opciones, index=idx_radio,
-            horizontal=True, label_visibility="collapsed", key=f"radio_{st.session_state.step}",
+            horizontal=True, label_visibility="collapsed", key=f"radio_{step}",
         )
 
         if seleccion_rapida:
@@ -655,7 +712,7 @@ else:
 
         respuesta_actual = st.text_area(
             label=area_label, value=st.session_state[ss_key],
-            placeholder=area_placeholder, height=115, key=f"resp_{st.session_state.step}",
+            placeholder=area_placeholder, height=70, key=f"resp_{step}",
         )
 
         st.markdown("<br>", unsafe_allow_html=True)
@@ -663,7 +720,7 @@ else:
 
         with col_back:
             st.markdown('<div class="btn-outline">', unsafe_allow_html=True)
-            if st.button("← Atrás", key=f"back_{st.session_state.step}", use_container_width=True):
+            if st.button("← Atrás", key=f"back_{step}", use_container_width=True):
                 st.session_state[ss_key] = respuesta_actual.strip()
                 st.session_state[qq_key] = seleccion_rapida
                 st.session_state.step -= 1
@@ -675,7 +732,7 @@ else:
             if es_ultima:
                 st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
 
-            if st.button(label_next, key=f"next_{st.session_state.step}", use_container_width=True):
+            if st.button(label_next, key=f"next_{step}", use_container_width=True):
                 texto_libre = respuesta_actual.strip()
                 if not seleccion_rapida and not texto_libre:
                     st.markdown('<div class="custom-alert">⚠️ Elija una opción rápida o escriba su respuesta antes de continuar.</div>', unsafe_allow_html=True)
@@ -713,12 +770,3 @@ else:
                 st.markdown("</div>", unsafe_allow_html=True)
 
         st.markdown("</div>", unsafe_allow_html=True)
-
-    st.markdown(
-        '<div class="minimal-footer">'
-        'Protegido por Ley 1581 de 2012 (Habeas Data) · Uso Académico Exclusivo<br>'
-        'Universidad de la Costa (CUC) · Barranquilla, Colombia<br>'
-        'Validación Comercial — <strong>CostoMármol</strong>'
-        '</div>',
-        unsafe_allow_html=True,
-    )
