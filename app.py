@@ -1,7 +1,7 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import base64
 import os
 from fpdf import FPDF
@@ -12,6 +12,9 @@ st.set_page_config(
     layout="centered",
     initial_sidebar_state="collapsed",
 )
+
+# ── Zona horaria Colombia (UTC-5) ─────────────────────────────────
+ZONA_CO = timezone(timedelta(hours=-5))
 
 ADMIN_PASSWORD  = "Admin123"
 LOGO_PATH       = "logo_cuc.png"
@@ -113,25 +116,37 @@ _BLANCO     = (255, 255, 255)
 _NEGRO      = (30,  30,  30)
 _GRIS_TEXTO = (80,  90, 100)
 _GRIS_CLARO = (245, 248, 251)
+_ETIQUETA_FONDO = (240, 245, 249)  # fondo sutil para etiquetas de pregunta
+
+
+# ══════════════════════════════════════════════════════════════════
+#  CLASE PDF CON PIE AUTOMÁTICO EN CADA PÁGINA
+# ══════════════════════════════════════════════════════════════════
+class ReportePDF(FPDF):
+    """FPDF subclase: pie corporativo dibujado automáticamente en cada página."""
+
+    def footer(self):
+        ancho_util = self.w - self.l_margin - self.r_margin
+        self.set_y(-14)
+        # Línea azul cian
+        self.set_draw_color(*_AZ_CIAN)
+        self.set_line_width(0.5)
+        self.line(self.l_margin, self.get_y(), self.l_margin + ancho_util, self.get_y())
+        self.ln(1.5)
+        self.set_font("Helvetica", "I", 7)
+        self.set_text_color(*_GRIS_TEXTO)
+        # Izquierda: empresa + confidencial
+        self.cell(w=ancho_util / 2, h=5,
+                  text="Marmoles Collante & Castro LTDA  |  Confidencial",
+                  align="L")
+        # Derecha: número de página
+        self.cell(w=ancho_util / 2, h=5,
+                  text=f"Pagina {self.page_no()}",
+                  align="R")
 
 def _limpiar(texto: str) -> str:
-    """Convierte texto a latin-1, reemplazando emojis y caracteres especiales."""
-    import unicodedata
-    res = []
-    for ch in str(texto):
-        try:
-            ch.encode("latin-1")
-            res.append(ch)
-        except UnicodeEncodeError:
-            n = unicodedata.name(ch, "").lower()
-            if "check" in n:                    res.append("[OK]")
-            elif "warning" in n:                res.append("[!]")
-            elif "cross" in n or "x mark" in n: res.append("[X]")
-            elif "clock" in n or "timer" in n:  res.append("[tiempo]")
-            elif "chart" in n:                  res.append("[grafico]")
-            elif "red circle" in n:             res.append("[ALTO]")
-            else:                               res.append(" ")
-    return "".join(res)
+    """Elimina silenciosamente todo carácter no latin-1 (emojis, etc.) sin inyectar etiquetas."""
+    return str(texto).encode("latin-1", "ignore").decode("latin-1").strip()
 
 # ══════════════════════════════════════════════════════════════════
 #  GENERADOR PDF — REPORTE CONSOLIDADO SECTORIAL
@@ -142,8 +157,8 @@ def _limpiar(texto: str) -> str:
 #  · Cero superposiciones garantizadas
 # ══════════════════════════════════════════════════════════════════
 def generar_pdf(df: pd.DataFrame) -> bytes:
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf = ReportePDF()
+    pdf.set_auto_page_break(auto=True, margin=22)   # margen amplio para el footer automático
     pdf.add_page()
 
     ancho_util = pdf.w - pdf.l_margin - pdf.r_margin
@@ -175,7 +190,7 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(150, 190, 220)
     pdf.cell(pdf.w - 10, 6,
-             f"Generado el {datetime.now().strftime('%d/%m/%Y  %H:%M')}  |  Confidencial",
+             f"Generado el {datetime.now(ZONA_CO).strftime('%d/%m/%Y  %H:%M')} (hora Colombia)  |  Confidencial",
              align="R")
 
     # Línea cian de cierre del header
@@ -245,11 +260,12 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
             if not respuesta or respuesta.strip() in ("nan", "None", ""):
                 respuesta = "Sin respuesta registrada"
 
-            # Etiqueta en negrita, color marino
+            # Etiqueta: negrita, color marino, FONDO SUTIL que la distingue visualmente
+            pdf.set_fill_color(*_ETIQUETA_FONDO)
             pdf.set_text_color(*_AZ_MARINO)
             pdf.set_font("Helvetica", "B", 8)
-            pdf.cell(w=0, h=6, text=etiqueta.upper(),
-                     new_x="LMARGIN", new_y="NEXT")
+            pdf.cell(w=0, h=6, text=f"  {etiqueta.upper()}",
+                     fill=True, new_x="LMARGIN", new_y="NEXT")
 
             # Respuesta en normal, negro, multi-línea automática
             pdf.set_text_color(*_NEGRO)
@@ -263,18 +279,7 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
         pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + ancho_util, pdf.get_y())
         pdf.ln(8)  # espacio amplio entre talleres
 
-    # ── PIE DE PÁGINA (última página) ────────────────────────────
-    pdf.set_y(-18)
-    pdf.set_draw_color(*_AZ_CIAN)
-    pdf.set_line_width(0.6)
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + ancho_util, pdf.get_y())
-    pdf.ln(2)
-    pdf.set_font("Helvetica", "I", 7)
-    pdf.set_text_color(*_GRIS_TEXTO)
-    pdf.cell(w=0, h=5,
-             text="Marmoles Collante & Castro LTDA  |  Documento Confidencial  |  Generado por CostoMarmol - CUC",
-             align="C")
-
+    # El pie de página lo dibuja ReportePDF.footer() automáticamente en cada página
     return bytes(pdf.output())
 
 # ══════════════════════════════════════════════════════════════════
@@ -628,7 +633,7 @@ if es_admin:
         st.download_button(
             label="📥 Exportar CSV para Power BI",
             data=csv_bytes,
-            file_name=f"costomarmol_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            file_name=f"costomarmol_{datetime.now(ZONA_CO).strftime('%Y%m%d_%H%M')}.csv",
             mime="text/csv",
             use_container_width=True,
         )
@@ -651,7 +656,7 @@ if es_admin:
         if generar:
             with st.spinner(f"Generando reporte consolidado con {len(df)} taller(es)…"):
                 pdf_bytes = generar_pdf(df)
-            nombre_archivo = f"reporte_consolidado_sectorial_{datetime.now().strftime('%Y%m%d')}.pdf"
+            nombre_archivo = f"reporte_consolidado_sectorial_{datetime.now(ZONA_CO).strftime('%Y%m%d')}.pdf"
             st.download_button(
                 label="⬇️  Descargar Reporte Consolidado",
                 data=pdf_bytes,
@@ -818,13 +823,14 @@ else:
                     st.session_state[qq_key] = seleccion_rapida
                     if es_ultima:
                         def armar_respuesta(q_val, t_val):
+                            """Combina opción rápida y texto libre elegantemente, sin corchetes."""
                             q = q_val if q_val else ""
                             t = (t_val or "").strip()
-                            if q and t: return f"[{q}] {t}"
+                            if q and t: return f"{q} — {t}"
                             if q: return q
                             return t
                         registro = {
-                            "timestamp":               datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                            "timestamp":               datetime.now(ZONA_CO).strftime("%Y-%m-%d %H:%M:%S"),
                             "nombre_taller":           st.session_state.w_nombre,
                             "correo":                  st.session_state.w_correo,
                             "p1_rentabilidad":         armar_respuesta(st.session_state.q_p1, st.session_state.r_p1),
