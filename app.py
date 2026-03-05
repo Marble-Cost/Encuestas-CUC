@@ -346,6 +346,16 @@ footer    {{ visibility: hidden !important; }}
 
 .stApp {{ background-color: var(--bg-main) !important; }}
 
+/* ══ LAYOUT CENTRADO — MAX 650px (Mobile App Experience) ════════ */
+.stApp > header + .main .block-container,
+.main .block-container {{
+    max-width: 650px !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: 1.5rem !important;
+    padding-right: 1.5rem !important;
+}}
+
 /* ══ HEADER ══════════════════════════════════════════════════════ */
 .premium-header {{
     display: flex;
@@ -355,10 +365,9 @@ footer    {{ visibility: hidden !important; }}
     padding: 20px 0 10px 0;
 }}
 .premium-header img {{
-    height: 44px;
+    height: 65px;
     object-fit: contain;
     margin-bottom: 14px;
-    mix-blend-mode: var(--logo-blend);
 }}
 .premium-header h1 {{
     font-size: 0.86rem;
@@ -812,7 +821,7 @@ div[data-testid="stRadio"] > label {{
 
 /* ══ TOGGLE ═════════════════════════════════════════════════════ */
 div[data-testid="stToggle"] label p {{
-    color: var(--text-hint) !important;
+    color: var(--text-sub) !important;
     font-size: 0.78rem !important;
     font-weight: 500 !important;
 }}
