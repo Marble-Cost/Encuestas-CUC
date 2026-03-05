@@ -181,7 +181,6 @@ if st.session_state.tema_oscuro:
     alert_left       = "#E3000F"
     alert_text       = "#C9D1D9"
     admin_val_color  = "#FFFFFF"
-    toggle_hex       = "#FFFFFF"  # Forzado estricto oscuro
 else:
     bg_main          = "#F0F2F5"
     bg_card          = "#FFFFFF"
@@ -225,7 +224,6 @@ else:
     alert_left       = "#E3000F"
     alert_text       = "#24292F"
     admin_val_color  = "#E3000F"
-    toggle_hex       = "#0D1117" # Forzado estricto claro
 
 CSS = f"""
 <style>
@@ -316,12 +314,25 @@ header {{ background: transparent !important; box-shadow: none !important; }}
     max-width: 520px;
 }}
 
-/* ══ TOGGLE — Color de texto definitivo ════════════════════════ */
-div[data-testid="stToggle"] p {{
-    color: {toggle_hex} !important;
-    -webkit-text-fill-color: {toggle_hex} !important;
-    opacity: 1 !important;
+/* ══ BOTÓN TEMA ═════════════════════════════════════════════════ */
+.btn-tema .stButton > button {{
+    background: transparent !important;
+    border: 1.5px solid var(--border-input) !important;
+    color: var(--text-main) !important;
+    -webkit-text-fill-color: var(--text-main) !important;
+    border-radius: 20px !important;
+    font-size: 0.82rem !important;
     font-weight: 600 !important;
+    padding: 6px 14px !important;
+    width: auto !important;
+    letter-spacing: 0.01em;
+    transition: all 0.2s ease !important;
+    white-space: nowrap !important;
+}}
+.btn-tema .stButton > button:hover {{
+    background: var(--border-input) !important;
+    transform: none !important;
+    box-shadow: none !important;
 }}
 
 .info-cards-row {{
@@ -523,8 +534,12 @@ es_admin = st.session_state.admin_auth
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
     with col_toggle:
-        label_tema = "Tema Claro" if not st.session_state.tema_oscuro else "Tema Oscuro"
-        st.toggle(label_tema, key="tema_oscuro")
+        icono = "🌙 Oscuro" if st.session_state.tema_oscuro else "☀️ Claro"
+        st.markdown('<div class="btn-tema">', unsafe_allow_html=True)
+        if st.button(icono, key="btn_tema"):
+            st.session_state.tema_oscuro = not st.session_state.tema_oscuro
+            st.rerun()
+        st.markdown('</div>', unsafe_allow_html=True)
 
     logo_tag = ""
     if os.path.exists(LOGO_PATH):
@@ -634,7 +649,7 @@ else:
         
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown('<div class="btn-start">', unsafe_allow_html=True)
-        iniciar = st.button("🚀  Iniciar Diagnóstico", use_container_width=True)
+        iniciar = st.button("🚀  Comenzar Diagnóstico", use_container_width=True)
         st.markdown("</div>", unsafe_allow_html=True)
 
         if iniciar:
