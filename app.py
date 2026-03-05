@@ -57,6 +57,11 @@ ETIQUETAS_PDF = {
     "p5_inteligencia_negocio": "Inteligencia de Negocio",
 }
 
+COLS_RESPUESTAS = [
+    "p1_rentabilidad", "p2_tiempo_operativo", "p3_normatividad_aiu",
+    "p4_percepcion_valor", "p5_inteligencia_negocio",
+]
+
 # ══════════════════════════════════════════════════════════════════
 #  TERMÓMETRO DE MADUREZ OPERATIVA
 # ══════════════════════════════════════════════════════════════════
@@ -99,19 +104,18 @@ def calcular_madurez():
                 puntaje, puntaje_max)
 
 # ══════════════════════════════════════════════════════════════════
-#  GENERADOR PDF — Marmoles Collante y Castro ltda
-#  CORRECCIÓN CRÍTICA: eliminado cell duplicado del nombre,
-#  logo a la izquierda, título/fecha a la derecha,
-#  salto de línea explícito entre etiqueta y respuesta.
+#  PALETA DE COLORES PDF
 # ══════════════════════════════════════════════════════════════════
 _AZ_MARINO  = (0,  47,  75)
 _AZ_CIAN    = (0, 122, 195)
-_GRIS_LINEA = (220, 225, 230)
+_GRIS_LINEA = (210, 218, 226)
 _BLANCO     = (255, 255, 255)
 _NEGRO      = (30,  30,  30)
 _GRIS_TEXTO = (80,  90, 100)
+_GRIS_CLARO = (245, 248, 251)
 
 def _limpiar(texto: str) -> str:
+    """Convierte texto a latin-1, reemplazando emojis y caracteres especiales."""
     import unicodedata
     res = []
     for ch in str(texto):
@@ -129,115 +133,147 @@ def _limpiar(texto: str) -> str:
             else:                               res.append(" ")
     return "".join(res)
 
-def generar_pdf(fila: pd.Series) -> bytes:
+# ══════════════════════════════════════════════════════════════════
+#  GENERADOR PDF — REPORTE CONSOLIDADO SECTORIAL
+#  Motor completamente refactorizado:
+#  · Argumento: df completo (pd.DataFrame)
+#  · Sin coordenadas absolutas en el cuerpo del documento
+#  · Flujo lineal con cell(w=0, new_x/new_y) y multi_cell(w=0)
+#  · Cero superposiciones garantizadas
+# ══════════════════════════════════════════════════════════════════
+def generar_pdf(df: pd.DataFrame) -> bytes:
     pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
     pdf.add_page()
-    pdf.set_auto_page_break(auto=True, margin=18)
-    W = pdf.w - pdf.l_margin - pdf.r_margin
 
-    # ── Banda azul marino ──────────────────────────────────────────
+    ancho_util = pdf.w - pdf.l_margin - pdf.r_margin
+
+    # ── CABECERA: banda azul marino ───────────────────────────────
+    ALTO_HEADER = 40
     pdf.set_fill_color(*_AZ_MARINO)
-    pdf.rect(0, 0, pdf.w, 38, "F")
+    pdf.rect(0, 0, pdf.w, ALTO_HEADER, "F")
 
-    # ── Logo a la izquierda (sin texto de nombre encima) ──────────
+    # Logo a la izquierda (coordenadas absolutas solo para el logo en la banda)
     if os.path.exists(LOGO_CC_PATH):
         try:
-            pdf.image(LOGO_CC_PATH, x=12, y=6, h=26)
+            pdf.image(LOGO_CC_PATH, x=10, y=5, h=30)
         except Exception:
             pass
 
-    # ── Título e info a la derecha de la cabecera ─────────────────
-    pdf.set_xy(0, 9)
-    pdf.set_font("Helvetica", "B", 13)
+    # Textos a la derecha dentro de la banda
+    pdf.set_xy(0, 8)
+    pdf.set_font("Helvetica", "B", 14)
     pdf.set_text_color(*_BLANCO)
-    pdf.cell(pdf.w - 12, 8, "Informe de Diagnostico Operativo", align="R")
+    pdf.cell(pdf.w - 10, 8, "Reporte Consolidado Sectorial", align="R")
 
     pdf.set_xy(0, 18)
-    pdf.set_font("Helvetica", "", 8)
+    pdf.set_font("Helvetica", "", 9)
     pdf.set_text_color(180, 210, 235)
-    pdf.cell(pdf.w - 12, 6, "Confidencial", align="R")
+    pdf.cell(pdf.w - 10, 6, "Marmoles Collante & Castro LTDA", align="R")
 
     pdf.set_xy(0, 26)
     pdf.set_font("Helvetica", "", 7)
     pdf.set_text_color(150, 190, 220)
-    pdf.cell(pdf.w - 12, 6, f"Generado el {datetime.now().strftime('%d/%m/%Y  %H:%M')}", align="R")
+    pdf.cell(pdf.w - 10, 6,
+             f"Generado el {datetime.now().strftime('%d/%m/%Y  %H:%M')}  |  Confidencial",
+             align="R")
 
-    # ── Línea cian ────────────────────────────────────────────────
+    # Línea cian de cierre del header
     pdf.set_draw_color(*_AZ_CIAN)
-    pdf.set_line_width(1.2)
-    pdf.line(0, 38, pdf.w, 38)
+    pdf.set_line_width(1.0)
+    pdf.line(0, ALTO_HEADER, pdf.w, ALTO_HEADER)
     pdf.set_line_width(0.2)
 
-    # ── Caja taller ───────────────────────────────────────────────
-    pdf.set_fill_color(240, 246, 252)
+    # Reposicionar cursor al inicio del área de contenido — a partir de aquí FLUJO LINEAL
+    pdf.set_xy(pdf.l_margin, ALTO_HEADER + 8)
+
+    # ── RESUMEN EJECUTIVO ─────────────────────────────────────────
+    total_talleres = len(df)
+
+    pdf.set_fill_color(*_AZ_CIAN)
+    pdf.set_text_color(*_BLANCO)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(w=0, h=8, text="  RESUMEN EJECUTIVO",
+             fill=True, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(3)
+
+    pdf.set_fill_color(*_GRIS_CLARO)
     pdf.set_draw_color(*_AZ_CIAN)
     pdf.set_line_width(0.4)
-    pdf.rect(pdf.l_margin, 44, W, 26, "FD")
-    pdf.set_xy(pdf.l_margin + 4, 47)
-    pdf.set_font("Helvetica", "B", 11)
     pdf.set_text_color(*_AZ_MARINO)
-    pdf.cell(W - 8, 7, _limpiar(str(fila.get("nombre_taller", "—"))))
-    pdf.set_xy(pdf.l_margin + 4, 55)
-    pdf.set_font("Helvetica", "", 9)
-    pdf.set_text_color(*_GRIS_TEXTO)
-    pdf.cell(W / 2, 6, f"Correo: {_limpiar(str(fila.get('correo', '—')))}")
-    pdf.set_xy(pdf.l_margin + W / 2, 55)
-    pdf.cell(W / 2, 6, f"Fecha: {_limpiar(str(fila.get('timestamp', '—')))}", align="R")
-
-    # ── Título respuestas ─────────────────────────────────────────
-    pdf.set_xy(pdf.l_margin, 76)
     pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(w=0, h=9,
+             text=f"  Total de talleres encuestados: {total_talleres}",
+             fill=True, border=1, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(8)
+
+    # ── TÍTULO SECCIÓN DETALLADA ──────────────────────────────────
     pdf.set_fill_color(*_AZ_MARINO)
     pdf.set_text_color(*_BLANCO)
-    pdf.cell(W, 8, "  RESPUESTAS DEL DIAGNOSTICO", fill=True)
-    pdf.ln(2)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.cell(w=0, h=8, text="  RESPUESTAS DETALLADAS POR TALLER",
+             fill=True, new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(6)
 
-    # ── Bucle de respuestas con salto explícito (evita superposición) ──
-    for i, col in enumerate([
-        "p1_rentabilidad", "p2_tiempo_operativo", "p3_normatividad_aiu",
-        "p4_percepcion_valor", "p5_inteligencia_negocio"
-    ]):
-        etiqueta  = ETIQUETAS_PDF.get(col, col)
-        respuesta = _limpiar(str(fila.get(col, "Sin respuesta")))
-        if not respuesta or respuesta in ("nan", "None", ""):
-            respuesta = "Sin respuesta registrada"
+    # ── ITERACIÓN ANTI-SUPERPOSICIÓN: un taller a la vez ─────────
+    for index, row in df.iterrows():
+        nombre = _limpiar(str(row.get("nombre_taller", "—")))
+        fecha  = _limpiar(str(row.get("timestamp",    "—")))
+        correo = _limpiar(str(row.get("correo",       "—")))
 
-        y = pdf.get_y() + 3
-
-        # Número de ítem
-        pdf.set_xy(pdf.l_margin, y)
+        # Cabecera de taller: fondo cian, negrita, texto blanco
         pdf.set_fill_color(*_AZ_CIAN)
         pdf.set_text_color(*_BLANCO)
-        pdf.set_font("Helvetica", "B", 8)
-        pdf.cell(8, 7, f" {i+1}", fill=True)
-
-        # Etiqueta en la misma línea Y
-        pdf.set_xy(pdf.l_margin + 9, y)
         pdf.set_font("Helvetica", "B", 9)
-        pdf.set_text_color(*_AZ_MARINO)
-        pdf.cell(W - 9, 7, etiqueta.upper())
+        pdf.cell(w=0, h=7,
+                 text=f"  {nombre}   |   {fecha}",
+                 fill=True, new_x="LMARGIN", new_y="NEXT")
 
-        # SALTO EXPLÍCITO: posicionamos debajo de la etiqueta antes del multi_cell
-        pdf.set_xy(pdf.l_margin + 9, y + 7)
-        pdf.set_font("Helvetica", "", 9)
-        pdf.set_text_color(*_NEGRO)
-        pdf.multi_cell(W - 9, 5.5, respuesta)
+        # Sub-fila correo en gris claro
+        pdf.set_fill_color(*_GRIS_CLARO)
+        pdf.set_text_color(*_GRIS_TEXTO)
+        pdf.set_font("Helvetica", "", 7)
+        pdf.cell(w=0, h=5,
+                 text=f"  Correo: {correo}",
+                 fill=True, new_x="LMARGIN", new_y="NEXT")
+        pdf.ln(3)
 
-        # Separador y espacio extra para que el bloque respire
-        y_sep = pdf.get_y() + 3
+        # Respuestas: etiqueta bold → multi_cell para respuesta larga
+        for col in COLS_RESPUESTAS:
+            etiqueta  = ETIQUETAS_PDF.get(col, col)
+            respuesta = _limpiar(str(row.get(col, "")))
+            if not respuesta or respuesta.strip() in ("nan", "None", ""):
+                respuesta = "Sin respuesta registrada"
+
+            # Etiqueta en negrita, color marino
+            pdf.set_text_color(*_AZ_MARINO)
+            pdf.set_font("Helvetica", "B", 8)
+            pdf.cell(w=0, h=6, text=etiqueta.upper(),
+                     new_x="LMARGIN", new_y="NEXT")
+
+            # Respuesta en normal, negro, multi-línea automática
+            pdf.set_text_color(*_NEGRO)
+            pdf.set_font("Helvetica", "", 8)
+            pdf.multi_cell(w=0, h=5, text=respuesta)
+            pdf.ln(3)  # espacio respirable entre preguntas
+
+        # Línea separadora y espacio amplio antes del siguiente taller
         pdf.set_draw_color(*_GRIS_LINEA)
-        pdf.line(pdf.l_margin, y_sep, pdf.l_margin + W, y_sep)
-        pdf.ln(6)
+        pdf.set_line_width(0.5)
+        pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + ancho_util, pdf.get_y())
+        pdf.ln(8)  # espacio amplio entre talleres
 
-    # ── Pie ───────────────────────────────────────────────────────
-    pdf.set_y(-22)
+    # ── PIE DE PÁGINA (última página) ────────────────────────────
+    pdf.set_y(-18)
     pdf.set_draw_color(*_AZ_CIAN)
     pdf.set_line_width(0.6)
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + W, pdf.get_y())
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + ancho_util, pdf.get_y())
     pdf.ln(2)
     pdf.set_font("Helvetica", "I", 7)
     pdf.set_text_color(*_GRIS_TEXTO)
-    pdf.cell(W, 5, "Marmoles Collante y Castro ltda  |  Documento confidencial  |  Generado por CostoMarmol - CUC", align="C")
+    pdf.cell(w=0, h=5,
+             text="Marmoles Collante & Castro LTDA  |  Documento Confidencial  |  Generado por CostoMarmol - CUC",
+             align="C")
 
     return bytes(pdf.output())
 
@@ -260,7 +296,7 @@ QQ_KEYS = {"p1_rentabilidad":"q_p1","p2_tiempo_operativo":"q_p2","p3_normativida
 TOTAL_PREGUNTAS = len(PREGUNTAS)
 
 # ══════════════════════════════════════════════════════════════════
-#  PALETA DINÁMICA
+#  PALETA DINÁMICA (UI Streamlit)
 # ══════════════════════════════════════════════════════════════════
 if st.session_state.tema_oscuro:
     bg_main="#0D1117"; bg_card="#161B22"; bg_welcome_card="#161B22"
@@ -338,7 +374,6 @@ header{{background:transparent!important;box-shadow:none!important;}}
 .welcome-title{{font-size:1.65rem;font-weight:800;color:var(--text-main);margin:0 0 26px 0;line-height:1.25;letter-spacing:-0.02em;}}
 .welcome-title span{{color:var(--title-span);}}
 .saas-card{{background-color:var(--bg-card);border:1px solid var(--border-card);border-radius:20px;padding:32px 28px 28px 28px;box-shadow:0 8px 32px rgba(0,0,0,0.14),0 2px 8px rgba(0,0,0,0.08);margin-bottom:18px;}}
-
 /* ── MADUREZ — centrado estricto con Flexbox ── */
 .madurez-card{{
     background:var(--madur-card-bg);
@@ -377,7 +412,6 @@ header{{background:transparent!important;box-shadow:none!important;}}
     text-align:center;
 }}
 .madurez-puntaje{{font-size:0.72rem;color:var(--text-hint);margin-top:14px;display:block;}}
-
 .stepper-wrap{{display:flex;align-items:center;justify-content:center;gap:0;margin:22px 0 18px 0;}}
 .step-node{{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.76rem;font-weight:700;flex-shrink:0;transition:all 0.25s ease;border:2px solid transparent;}}
 .step-node.done{{background:var(--step-done-bg);color:var(--step-done-txt);border-color:var(--step-done-bg);box-shadow:0 2px 12px rgba(227,0,15,0.30);}}
@@ -522,7 +556,7 @@ with st.sidebar:
 es_admin = st.session_state.admin_auth
 
 # ══════════════════════════════════════════════════════════════════
-#  HEADER — función reutilizable
+#  HEADER / FOOTER — funciones reutilizables
 # ══════════════════════════════════════════════════════════════════
 def render_header() -> None:
     col_vacia, col_toggle = st.columns([4, 1])
@@ -599,38 +633,34 @@ if es_admin:
             use_container_width=True,
         )
 
-        # ── Generación de Reportes Individuales PDF ───────────────
+        # ── Generación de Reporte Consolidado PDF ─────────────────
         st.markdown(
             '<div class="admin-pdf-section">'
-            '<div class="admin-pdf-title"><span class="dot"></span>Generación de Reportes Individuales</div>',
+            '<div class="admin-pdf-title"><span class="dot"></span>Generación de Reporte Consolidado</div>',
             unsafe_allow_html=True,
         )
 
-        talleres_disponibles = df["nombre_taller"].dropna().unique().tolist()
+        st.markdown('<div class="btn-pdf">', unsafe_allow_html=True)
+        generar = st.button(
+            "📄  Generar Reporte Consolidado (PDF)",
+            use_container_width=True,
+            key="btn_gen_pdf",
+        )
+        st.markdown('</div>', unsafe_allow_html=True)
 
-        if not talleres_disponibles:
-            st.info("No hay talleres registrados para generar reportes.")
-        else:
-            taller_sel = st.selectbox("Seleccione el taller", options=talleres_disponibles, key="pdf_taller_sel")
-
-            st.markdown('<div class="btn-pdf">', unsafe_allow_html=True)
-            generar = st.button("📄  Generar Reporte PDF", use_container_width=True, key="btn_gen_pdf")
-            st.markdown('</div>', unsafe_allow_html=True)
-
-            if generar:
-                fila_taller = df[df["nombre_taller"] == taller_sel].iloc[-1]
-                with st.spinner("Generando PDF…"):
-                    pdf_bytes = generar_pdf(fila_taller)
-                nombre_archivo = f"reporte_{taller_sel.replace(' ', '_').lower()}_{datetime.now().strftime('%Y%m%d')}.pdf"
-                st.download_button(
-                    label="⬇️  Descargar PDF",
-                    data=pdf_bytes,
-                    file_name=nombre_archivo,
-                    mime="application/pdf",
-                    use_container_width=True,
-                    key="btn_dl_pdf",
-                )
-                st.success(f"Reporte generado para: **{taller_sel}**")
+        if generar:
+            with st.spinner(f"Generando reporte consolidado con {len(df)} taller(es)…"):
+                pdf_bytes = generar_pdf(df)
+            nombre_archivo = f"reporte_consolidado_sectorial_{datetime.now().strftime('%Y%m%d')}.pdf"
+            st.download_button(
+                label="⬇️  Descargar Reporte Consolidado",
+                data=pdf_bytes,
+                file_name=nombre_archivo,
+                mime="application/pdf",
+                use_container_width=True,
+                key="btn_dl_pdf",
+            )
+            st.success(f"Reporte consolidado generado: **{len(df)} taller(es)** incluidos.")
 
         st.markdown('</div>', unsafe_allow_html=True)
 
