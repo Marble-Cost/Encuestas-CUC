@@ -100,6 +100,9 @@ def calcular_madurez():
 
 # ══════════════════════════════════════════════════════════════════
 #  GENERADOR PDF — Marmoles Collante y Castro ltda
+#  CORRECCIÓN CRÍTICA: eliminado cell duplicado del nombre,
+#  logo a la izquierda, título/fecha a la derecha,
+#  salto de línea explícito entre etiqueta y respuesta.
 # ══════════════════════════════════════════════════════════════════
 _AZ_MARINO  = (0,  47,  75)
 _AZ_CIAN    = (0, 122, 195)
@@ -117,13 +120,13 @@ def _limpiar(texto: str) -> str:
             res.append(ch)
         except UnicodeEncodeError:
             n = unicodedata.name(ch, "").lower()
-            if "check" in n:            res.append("[OK]")
-            elif "warning" in n:        res.append("[!]")
+            if "check" in n:                    res.append("[OK]")
+            elif "warning" in n:                res.append("[!]")
             elif "cross" in n or "x mark" in n: res.append("[X]")
             elif "clock" in n or "timer" in n:  res.append("[tiempo]")
-            elif "chart" in n:          res.append("[grafico]")
-            elif "red circle" in n:     res.append("[ALTO]")
-            else:                       res.append(" ")
+            elif "chart" in n:                  res.append("[grafico]")
+            elif "red circle" in n:             res.append("[ALTO]")
+            else:                               res.append(" ")
     return "".join(res)
 
 def generar_pdf(fila: pd.Series) -> bytes:
@@ -132,62 +135,108 @@ def generar_pdf(fila: pd.Series) -> bytes:
     pdf.set_auto_page_break(auto=True, margin=18)
     W = pdf.w - pdf.l_margin - pdf.r_margin
 
-    # Banda azul marino
+    # ── Banda azul marino ──────────────────────────────────────────
     pdf.set_fill_color(*_AZ_MARINO)
     pdf.rect(0, 0, pdf.w, 38, "F")
 
+    # ── Logo a la izquierda (sin texto de nombre encima) ──────────
     if os.path.exists(LOGO_CC_PATH):
         try:
-            pdf.image(LOGO_CC_PATH, x=12, y=5, h=28)
+            pdf.image(LOGO_CC_PATH, x=12, y=6, h=26)
         except Exception:
             pass
 
-    pdf.set_xy(0, 8);  pdf.set_font("Helvetica", "B", 15); pdf.set_text_color(*_BLANCO)
-    pdf.cell(pdf.w, 10, "Marmoles Collante y Castro ltda", align="C")
-    pdf.set_xy(0, 19); pdf.set_font("Helvetica", "", 8); pdf.set_text_color(180, 210, 235)
-    pdf.cell(pdf.w, 6, "Informe de Diagnostico Operativo  |  Confidencial", align="C")
-    pdf.set_xy(0, 26); pdf.set_font("Helvetica", "", 7); pdf.set_text_color(150, 190, 220)
-    pdf.cell(pdf.w, 6, f"Generado el {datetime.now().strftime('%d/%m/%Y  %H:%M')}", align="C")
+    # ── Título e info a la derecha de la cabecera ─────────────────
+    pdf.set_xy(0, 9)
+    pdf.set_font("Helvetica", "B", 13)
+    pdf.set_text_color(*_BLANCO)
+    pdf.cell(pdf.w - 12, 8, "Informe de Diagnostico Operativo", align="R")
 
-    # Línea cian
-    pdf.set_draw_color(*_AZ_CIAN); pdf.set_line_width(1.2)
-    pdf.line(0, 38, pdf.w, 38);   pdf.set_line_width(0.2)
+    pdf.set_xy(0, 18)
+    pdf.set_font("Helvetica", "", 8)
+    pdf.set_text_color(180, 210, 235)
+    pdf.cell(pdf.w - 12, 6, "Confidencial", align="R")
 
-    # Caja taller
-    pdf.set_fill_color(240, 246, 252); pdf.set_draw_color(*_AZ_CIAN); pdf.set_line_width(0.4)
+    pdf.set_xy(0, 26)
+    pdf.set_font("Helvetica", "", 7)
+    pdf.set_text_color(150, 190, 220)
+    pdf.cell(pdf.w - 12, 6, f"Generado el {datetime.now().strftime('%d/%m/%Y  %H:%M')}", align="R")
+
+    # ── Línea cian ────────────────────────────────────────────────
+    pdf.set_draw_color(*_AZ_CIAN)
+    pdf.set_line_width(1.2)
+    pdf.line(0, 38, pdf.w, 38)
+    pdf.set_line_width(0.2)
+
+    # ── Caja taller ───────────────────────────────────────────────
+    pdf.set_fill_color(240, 246, 252)
+    pdf.set_draw_color(*_AZ_CIAN)
+    pdf.set_line_width(0.4)
     pdf.rect(pdf.l_margin, 44, W, 26, "FD")
-    pdf.set_xy(pdf.l_margin + 4, 47); pdf.set_font("Helvetica", "B", 11); pdf.set_text_color(*_AZ_MARINO)
+    pdf.set_xy(pdf.l_margin + 4, 47)
+    pdf.set_font("Helvetica", "B", 11)
+    pdf.set_text_color(*_AZ_MARINO)
     pdf.cell(W - 8, 7, _limpiar(str(fila.get("nombre_taller", "—"))))
-    pdf.set_xy(pdf.l_margin + 4, 55); pdf.set_font("Helvetica", "", 9); pdf.set_text_color(*_GRIS_TEXTO)
+    pdf.set_xy(pdf.l_margin + 4, 55)
+    pdf.set_font("Helvetica", "", 9)
+    pdf.set_text_color(*_GRIS_TEXTO)
     pdf.cell(W / 2, 6, f"Correo: {_limpiar(str(fila.get('correo', '—')))}")
     pdf.set_xy(pdf.l_margin + W / 2, 55)
     pdf.cell(W / 2, 6, f"Fecha: {_limpiar(str(fila.get('timestamp', '—')))}", align="R")
 
-    # Título respuestas
-    pdf.set_xy(pdf.l_margin, 76); pdf.set_font("Helvetica", "B", 10)
-    pdf.set_fill_color(*_AZ_MARINO); pdf.set_text_color(*_BLANCO)
-    pdf.cell(W, 8, "  RESPUESTAS DEL DIAGNOSTICO", fill=True); pdf.ln(2)
+    # ── Título respuestas ─────────────────────────────────────────
+    pdf.set_xy(pdf.l_margin, 76)
+    pdf.set_font("Helvetica", "B", 10)
+    pdf.set_fill_color(*_AZ_MARINO)
+    pdf.set_text_color(*_BLANCO)
+    pdf.cell(W, 8, "  RESPUESTAS DEL DIAGNOSTICO", fill=True)
+    pdf.ln(2)
 
-    for i, col in enumerate(["p1_rentabilidad","p2_tiempo_operativo","p3_normatividad_aiu","p4_percepcion_valor","p5_inteligencia_negocio"]):
+    # ── Bucle de respuestas con salto explícito (evita superposición) ──
+    for i, col in enumerate([
+        "p1_rentabilidad", "p2_tiempo_operativo", "p3_normatividad_aiu",
+        "p4_percepcion_valor", "p5_inteligencia_negocio"
+    ]):
         etiqueta  = ETIQUETAS_PDF.get(col, col)
         respuesta = _limpiar(str(fila.get(col, "Sin respuesta")))
         if not respuesta or respuesta in ("nan", "None", ""):
             respuesta = "Sin respuesta registrada"
 
         y = pdf.get_y() + 3
-        pdf.set_xy(pdf.l_margin, y); pdf.set_fill_color(*_AZ_CIAN); pdf.set_text_color(*_BLANCO)
-        pdf.set_font("Helvetica", "B", 8); pdf.cell(8, 7, f" {i+1}", fill=True)
-        pdf.set_xy(pdf.l_margin + 9, y); pdf.set_font("Helvetica", "B", 9); pdf.set_text_color(*_AZ_MARINO)
-        pdf.cell(W - 9, 7, etiqueta.upper())
-        pdf.set_xy(pdf.l_margin + 9, pdf.get_y()); pdf.set_font("Helvetica", "", 9); pdf.set_text_color(*_NEGRO)
-        pdf.multi_cell(W - 9, 5.5, respuesta)
-        y_sep = pdf.get_y() + 2
-        pdf.set_draw_color(*_GRIS_LINEA); pdf.line(pdf.l_margin, y_sep, pdf.l_margin + W, y_sep); pdf.ln(4)
 
-    # Pie
-    pdf.set_y(-22); pdf.set_draw_color(*_AZ_CIAN); pdf.set_line_width(0.6)
-    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + W, pdf.get_y()); pdf.ln(2)
-    pdf.set_font("Helvetica", "I", 7); pdf.set_text_color(*_GRIS_TEXTO)
+        # Número de ítem
+        pdf.set_xy(pdf.l_margin, y)
+        pdf.set_fill_color(*_AZ_CIAN)
+        pdf.set_text_color(*_BLANCO)
+        pdf.set_font("Helvetica", "B", 8)
+        pdf.cell(8, 7, f" {i+1}", fill=True)
+
+        # Etiqueta en la misma línea Y
+        pdf.set_xy(pdf.l_margin + 9, y)
+        pdf.set_font("Helvetica", "B", 9)
+        pdf.set_text_color(*_AZ_MARINO)
+        pdf.cell(W - 9, 7, etiqueta.upper())
+
+        # SALTO EXPLÍCITO: posicionamos debajo de la etiqueta antes del multi_cell
+        pdf.set_xy(pdf.l_margin + 9, y + 7)
+        pdf.set_font("Helvetica", "", 9)
+        pdf.set_text_color(*_NEGRO)
+        pdf.multi_cell(W - 9, 5.5, respuesta)
+
+        # Separador y espacio extra para que el bloque respire
+        y_sep = pdf.get_y() + 3
+        pdf.set_draw_color(*_GRIS_LINEA)
+        pdf.line(pdf.l_margin, y_sep, pdf.l_margin + W, y_sep)
+        pdf.ln(6)
+
+    # ── Pie ───────────────────────────────────────────────────────
+    pdf.set_y(-22)
+    pdf.set_draw_color(*_AZ_CIAN)
+    pdf.set_line_width(0.6)
+    pdf.line(pdf.l_margin, pdf.get_y(), pdf.l_margin + W, pdf.get_y())
+    pdf.ln(2)
+    pdf.set_font("Helvetica", "I", 7)
+    pdf.set_text_color(*_GRIS_TEXTO)
     pdf.cell(W, 5, "Marmoles Collante y Castro ltda  |  Documento confidencial  |  Generado por CostoMarmol - CUC", align="C")
 
     return bytes(pdf.output())
@@ -317,9 +366,7 @@ header{{background:transparent!important;box-shadow:none!important;}}
     text-transform:uppercase;
     border-radius:20px;
     padding:4px 14px;
-    margin-bottom:16px;
-    margin-left:auto;
-    margin-right:auto;
+    margin:0 auto 16px auto;
 }}
 .madurez-consejo{{
     font-size:0.88rem;
@@ -593,13 +640,13 @@ if es_admin:
 #  VISTA B — ENCUESTADO
 # ══════════════════════════════════════════════════════════════════
 else:
-    step      = st.session_state.step
-    enviado   = st.session_state.enviado
+    step    = st.session_state.step
+    enviado = st.session_state.enviado
     en_wizard = (1 <= step <= TOTAL_PREGUNTAS)
 
-    # Header y footer SOLO en bienvenida (step 0) y pantalla de éxito
-    # Durante el wizard (steps 1-5) se omiten para máximo espacio vertical
-    if not en_wizard:
+    # ── Zero-Scroll: header y footer SOLO en step 0 y pantalla de éxito ──
+    mostrar_chrome = (step == 0) or (enviado is True)
+    if mostrar_chrome:
         render_header()
 
     # ── Pantalla de éxito + Termómetro de Madurez ────────────────
