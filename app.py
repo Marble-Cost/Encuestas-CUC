@@ -32,7 +32,7 @@ COLUMNAS = [
     "p5_inteligencia_negocio",
 ]
 
-# Respuestas rápidas por módulo
+# Opciones rápidas por módulo (renderizadas con st.radio horizontal)
 QUICK_OPTIONS = {
     "p1_rentabilidad": [
         "✅ No, todo bien",
@@ -64,14 +64,14 @@ QUICK_OPTIONS = {
     ],
 }
 
-# Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder, razon, emoji_modulo)
+# Cada entrada: (clave_db, titulo_modulo, pregunta, placeholder_base, emoji_modulo)
+# ► Columna "razon_investigacion" eliminada — reemplazada por micro-texto fijo en el render
 PREGUNTAS = [
     (
         "p1_rentabilidad",
         "Rentabilidad Financiera",
         "¿En los últimos 3 meses ha tenido algún proyecto donde la utilidad final fue menor a la esperada? ¿Qué ocurrió y cuánto fue la diferencia aproximada?",
         "Ej: Sí, en un proyecto de cocina la utilidad fue 30% menor porque el material subió de precio y hubo desperdicio no calculado.",
-        "Identifica pérdidas sistemáticas por consumibles no controlados.",
         "💰",
     ),
     (
@@ -79,7 +79,6 @@ PREGUNTAS = [
         "Tiempo Operativo",
         "¿Cuánto tiempo le toma en promedio elaborar una cotización completa desde que recibe la solicitud hasta que la envía al cliente?",
         "Ej: Me toma entre 1 y 2 días, principalmente porque debo consultar precios actualizados con proveedores.",
-        "Mide si la cotización es un cuello de botella operativo.",
         "⏱️",
     ),
     (
@@ -87,7 +86,6 @@ PREGUNTAS = [
         "Normatividad AIU",
         "¿Ha tenido observaciones, ajustes o pérdida de contratos por errores en el manejo tributario (AIU, IVA u otros)? ¿Cuántas veces en el último año?",
         "Ej: Sí, dos veces en el último año me pidieron corregir el AIU en contratos con constructoras.",
-        "Cuantifica el impacto económico de la informalidad normativa.",
         "📋",
     ),
     (
@@ -95,7 +93,6 @@ PREGUNTAS = [
         "Percepción de Valor",
         "¿Cómo entrega actualmente sus cotizaciones (WhatsApp, Excel, PDF formal, sistema)? ¿Ha notado diferencias en la respuesta del cliente según el formato?",
         "Ej: Las envío por WhatsApp en texto; los clientes empresariales me piden PDF formal y a veces dudan del precio.",
-        "Analiza si el formato afecta la tasa de cierre de negocios.",
         "📤",
     ),
     (
@@ -103,7 +100,6 @@ PREGUNTAS = [
         "Inteligencia de Negocio",
         "¿Cuenta actualmente con algún sistema o registro que le permita identificar qué tipo de material o proyecto le deja mayor margen? Si no, ¿cómo toma esa decisión?",
         "Ej: No tengo un sistema exacto, lo decido por experiencia empírica de lo que me quedó en proyectos pasados.",
-        "Evalúa el nivel de madurez analítica del sector.",
         "📊",
     ),
 ]
@@ -147,7 +143,6 @@ TOTAL_PREGUNTAS = len(PREGUNTAS)
 if st.session_state.tema_oscuro:
     bg_main          = "#0B0E14"
     bg_card          = "#151A23"
-    bg_context       = "#1A2030"
     bg_welcome_card  = "#12151E"
     text_main        = "#F2F5F8"
     text_muted       = "#8B949E"
@@ -158,13 +153,15 @@ if st.session_state.tema_oscuro:
     stepper_idle     = "#2A3040"
     stepper_txt_idle = "#4A5568"
     pill_bg          = "rgba(255,255,255,0.06)"
-    pill_border      = "rgba(255,255,255,0.12)"
+    pill_border      = "rgba(255,255,255,0.10)"
     pill_color       = "#8B949E"
+    pill_bg_sel      = "rgba(227,0,15,0.18)"
+    pill_border_sel  = "#E3000F"
+    pill_color_sel   = "#FF5560"
     info_card_bg     = "#1A2030"
 else:
     bg_main          = "#F4F6FA"
     bg_card          = "#FFFFFF"
-    bg_context       = "#FFF5F5"
     bg_welcome_card  = "#FFFFFF"
     text_main        = "#0F172A"
     text_muted       = "#64748B"
@@ -175,9 +172,12 @@ else:
     stepper_idle     = "#E2E8F0"
     stepper_txt_idle = "#94A3B8"
     pill_bg          = "rgba(0,0,0,0.04)"
-    pill_border      = "rgba(0,0,0,0.10)"
+    pill_border      = "rgba(0,0,0,0.09)"
     pill_color       = "#64748B"
-    info_card_bg     = "#F0F4FF"
+    pill_bg_sel      = "rgba(227,0,15,0.10)"
+    pill_border_sel  = "#E3000F"
+    pill_color_sel   = "#B3000B"
+    info_card_bg     = "#EEF2FF"
 
 # ══════════════════════════════════════════════════════════════════
 #  CSS — DISEÑO PREMIUM MOBILE-FIRST
@@ -187,24 +187,27 @@ CSS = f"""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 :root {{
-    --bg-main:       {bg_main};
-    --bg-card:       {bg_card};
-    --bg-context:    {bg_context};
-    --text-main:     {text_main};
-    --text-muted:    {text_muted};
-    --border-subtle: {border_subtle};
-    --btn-text:      {btn_text};
-    --btn-bg:        {btn_bg};
-    --cuc-red:       #E3000F;
-    --cuc-red-hover: #B3000B;
-    --cuc-red-soft:  rgba(227,0,15,0.10);
-    --stepper-idle:  {stepper_idle};
-    --stepper-txt:   {stepper_txt_idle};
-    --pill-bg:       {pill_bg};
-    --pill-border:   {pill_border};
-    --pill-color:    {pill_color};
-    --info-card-bg:  {info_card_bg};
-    --welcome-bg:    {bg_welcome_card};
+    --bg-main:         {bg_main};
+    --bg-card:         {bg_card};
+    --text-main:       {text_main};
+    --text-muted:      {text_muted};
+    --border-subtle:   {border_subtle};
+    --btn-text:        {btn_text};
+    --btn-bg:          {btn_bg};
+    --cuc-red:         #E3000F;
+    --cuc-red-hover:   #B3000B;
+    --cuc-red-soft:    rgba(227,0,15,0.10);
+    --stepper-idle:    {stepper_idle};
+    --stepper-txt:     {stepper_txt_idle};
+    --pill-bg:         {pill_bg};
+    --pill-border:     {pill_border};
+    --pill-color:      {pill_color};
+    --pill-bg-sel:     {pill_bg_sel};
+    --pill-border-sel: {pill_border_sel};
+    --pill-color-sel:  {pill_color_sel};
+    --info-card-bg:    {info_card_bg};
+    --welcome-bg:      {bg_welcome_card};
+    --logo-blend:      {logo_blend};
 }}
 
 html, body, [class*="css"], .stApp, .stMarkdown,
@@ -230,7 +233,7 @@ footer    {{ visibility: hidden !important; }}
     height: 42px;
     object-fit: contain;
     margin-bottom: 12px;
-    mix-blend-mode: {logo_blend};
+    mix-blend-mode: var(--logo-blend);
 }}
 .premium-header h1 {{
     font-size: 0.95rem;
@@ -262,29 +265,10 @@ footer    {{ visibility: hidden !important; }}
     transform: translateY(-3px);
     box-shadow: 0 8px 24px rgba(0,0,0,0.10);
 }}
-.info-card .ic-icon {{
-    font-size: 2rem;
-    display: block;
-    margin-bottom: 10px;
-    line-height: 1;
-}}
-.info-card .ic-title {{
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--text-main);
-    margin-bottom: 4px;
-    display: block;
-}}
-.info-card .ic-desc {{
-    font-size: 0.76rem;
-    color: var(--text-muted);
-    line-height: 1.45;
-    display: block;
-}}
-.info-card.red {{
-    border-color: rgba(227,0,15,0.25);
-    background: var(--cuc-red-soft);
-}}
+.info-card .ic-icon  {{ font-size: 2rem; display: block; margin-bottom: 10px; line-height: 1; }}
+.info-card .ic-title {{ font-size: 0.88rem; font-weight: 700; color: var(--text-main); margin-bottom: 4px; display: block; }}
+.info-card .ic-desc  {{ font-size: 0.76rem; color: var(--text-muted); line-height: 1.45; display: block; }}
+.info-card.red {{ border-color: rgba(227,0,15,0.25); background: var(--cuc-red-soft); }}
 .info-card.red .ic-title {{ color: var(--cuc-red); }}
 
 /* ══ BIENVENIDA CARD ═══════════════════════════════════ */
@@ -333,88 +317,48 @@ footer    {{ visibility: hidden !important; }}
     margin: 20px 0 16px 0;
 }}
 .step-node {{
-    width: 34px;
-    height: 34px;
+    width: 34px; height: 34px;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.78rem;
-    font-weight: 700;
-    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.78rem; font-weight: 700; flex-shrink: 0;
     transition: all 0.25s ease;
 }}
-.step-node.done {{
-    background: var(--cuc-red);
-    color: #fff;
-    border: 2px solid var(--cuc-red);
-}}
-.step-node.active {{
-    background: transparent;
-    color: var(--cuc-red);
-    border: 2px solid var(--cuc-red);
-    box-shadow: 0 0 0 5px rgba(227,0,15,0.14);
-}}
-.step-node.idle {{
-    background: var(--stepper-idle);
-    color: var(--stepper-txt);
-    border: 2px solid var(--stepper-idle);
-}}
-.step-connector {{
-    height: 2px;
-    width: 26px;
-    flex-shrink: 0;
-    transition: background 0.25s ease;
-}}
+.step-node.done   {{ background: var(--cuc-red); color: #fff; border: 2px solid var(--cuc-red); }}
+.step-node.active {{ background: transparent; color: var(--cuc-red); border: 2px solid var(--cuc-red); box-shadow: 0 0 0 5px rgba(227,0,15,0.14); }}
+.step-node.idle   {{ background: var(--stepper-idle); color: var(--stepper-txt); border: 2px solid var(--stepper-idle); }}
+.step-connector   {{ height: 2px; width: 26px; flex-shrink: 0; transition: background 0.25s ease; }}
 .step-connector.done {{ background: var(--cuc-red); }}
 .step-connector.idle {{ background: var(--stepper-idle); }}
 
-/* ══ WIZARD MODULE LABEL ═══════════════════════════════ */
+/* ══ WIZARD LABEL / TÍTULO ═════════════════════════════ */
 .wizard-step {{
-    font-size: 0.73rem;
-    font-weight: 600;
-    color: var(--cuc-red);
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    margin-bottom: 6px;
-    display: block;
+    font-size: 0.73rem; font-weight: 600; color: var(--cuc-red);
+    text-transform: uppercase; letter-spacing: 0.1em;
+    margin-bottom: 6px; display: block;
 }}
-.wizard-module-icon {{
-    font-size: 2.2rem;
-    display: block;
-    margin-bottom: 8px;
-}}
+.wizard-module-icon {{ font-size: 2.2rem; display: block; margin-bottom: 8px; }}
 .wizard-title {{
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: var(--text-main);
-    line-height: 1.5;
-    margin: 0 0 18px 0;
+    font-size: 1.2rem; font-weight: 700; color: var(--text-main);
+    line-height: 1.5; margin: 0 0 6px 0;
 }}
 
-/* ══ CONTEXT BOX ═══════════════════════════════════════ */
-.context-box {{
-    background-color: var(--bg-context);
-    border-left: 3px solid var(--cuc-red);
-    border-radius: 0 8px 8px 0;
-    padding: 10px 14px;
-    margin-bottom: 18px;
-    font-size: 0.80rem;
+/* ══ MICRO-TEXTO INSTRUCCIÓN (reemplaza context-box) ═══ */
+.micro-instruccion {{
+    font-size: 0.78rem;
     color: var(--text-muted);
-    line-height: 1.6;
-    display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    margin: 0 0 14px 0;
+    display: block;
+    font-weight: 400;
 }}
 
-/* ══ VOZ HINT ══════════════════════════════════════════ */
+/* ══ HINT VOZ ══════════════════════════════════════════ */
 .voz-hint {{
     font-style: italic;
-    font-size: 0.80rem;
+    font-size: 0.78rem;
     color: var(--text-muted);
-    margin-bottom: 8px;
+    margin: 4px 0 8px 0;
     display: block;
-    opacity: 0.75;
+    opacity: 0.68;
 }}
 
 /* ══ INPUTS ════════════════════════════════════════════ */
@@ -441,6 +385,81 @@ footer    {{ visibility: hidden !important; }}
     letter-spacing: 0.05em;
 }}
 
+/* ══ RADIO DISFRAZADO COMO PÍLDORAS ════════════════════
+   1. Ponemos el grupo en fila horizontal (flex-wrap).
+   2. Ocultamos el círculo nativo del radio input.
+   3. Estilizamos cada <label> como un botón pill.
+   4. Usamos :has(input:checked) para el estado seleccionado.
+════════════════════════════════════════════════════════ */
+
+/* Grupo: fila horizontal wrappable */
+div[data-testid="stRadio"] > div[role="radiogroup"] {{
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+    align-items: center !important;
+    margin: 2px 0 10px 0 !important;
+}}
+
+/* Cada label: pill base */
+div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: var(--pill-bg) !important;
+    border: 1.5px solid var(--pill-border) !important;
+    color: var(--pill-color) !important;
+    border-radius: 24px !important;
+    font-size: 0.86rem !important;
+    font-weight: 500 !important;
+    padding: 8px 16px !important;
+    cursor: pointer !important;
+    transition: background 0.15s ease, border-color 0.15s ease,
+                color 0.15s ease, transform 0.12s ease,
+                box-shadow 0.15s ease !important;
+    user-select: none !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}}
+
+div[data-testid="stRadio"] > div[role="radiogroup"] > label:hover {{
+    border-color: var(--pill-border-sel) !important;
+    color: var(--pill-color-sel) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 3px 10px rgba(227,0,15,0.14) !important;
+}}
+
+/* Ocultar el círculo dot nativo (primer hijo div del label) */
+div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:first-child {{
+    display: none !important;
+}}
+
+/* Texto del label: sin overhead de márgenes del dot */
+div[data-testid="stRadio"] > div[role="radiogroup"] > label > div:last-child p {{
+    color: inherit !important;
+    font-size: inherit !important;
+    font-weight: inherit !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: inherit !important;
+}}
+
+/* Estado SELECCIONADO: usa :has() moderno (soportado en Chrome 105+, Safari 15.4+) */
+div[data-testid="stRadio"] > div[role="radiogroup"] > label:has(input:checked) {{
+    background: var(--pill-bg-sel) !important;
+    border-color: var(--pill-border-sel) !important;
+    color: var(--pill-color-sel) !important;
+    font-weight: 700 !important;
+    box-shadow: 0 2px 12px rgba(227,0,15,0.20) !important;
+    transform: translateY(0) !important;
+}}
+
+/* Ocultar label de título del radio (lo reemplazamos con HTML propio) */
+div[data-testid="stRadio"] > label {{
+    display: none !important;
+}}
+
 /* ══ BOTONES PRINCIPALES ═══════════════════════════════ */
 .stButton > button {{
     background-color: var(--btn-bg) !important;
@@ -455,12 +474,14 @@ footer    {{ visibility: hidden !important; }}
     letter-spacing: 0.01em;
 }}
 .stButton > button:hover {{
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
+    transform: translateY(-2px) !important;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.18) !important;
     opacity: 0.93;
 }}
 .stButton > button:active {{
-    transform: translateY(0);
+    transform: translateY(0) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
 }}
 
 .btn-rojo .stButton > button {{
@@ -472,7 +493,8 @@ footer    {{ visibility: hidden !important; }}
 }}
 .btn-rojo .stButton > button:hover {{
     box-shadow: 0 8px 28px rgba(227,0,15,0.42) !important;
-    transform: translateY(-3px);
+    transform: translateY(-3px) !important;
+    opacity: 1 !important;
 }}
 
 .btn-start .stButton > button {{
@@ -486,7 +508,8 @@ footer    {{ visibility: hidden !important; }}
 }}
 .btn-start .stButton > button:hover {{
     box-shadow: 0 10px 32px rgba(227,0,15,0.46) !important;
-    transform: translateY(-3px);
+    transform: translateY(-3px) !important;
+    opacity: 1 !important;
 }}
 
 .btn-outline .stButton > button {{
@@ -500,6 +523,9 @@ footer    {{ visibility: hidden !important; }}
     color: var(--text-main) !important;
     border-color: var(--text-muted) !important;
     background: transparent !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+    transform: none !important;
 }}
 
 /* ══ ALERTA ════════════════════════════════════════════ */
@@ -526,36 +552,13 @@ footer    {{ visibility: hidden !important; }}
 }}
 
 /* ══ CONFIRMACIÓN ══════════════════════════════════════ */
-.confirm-icon {{
-    font-size: 3.5rem;
-    display: block;
-    text-align: center;
-    margin-bottom: 14px;
-}}
-.confirm-title {{
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--text-main);
-    text-align: center;
-    margin-bottom: 12px;
-}}
-.confirm-text {{
-    font-size: 0.93rem;
-    color: var(--text-muted);
-    text-align: center;
-    line-height: 1.75;
-    margin-bottom: 20px;
-}}
+.confirm-icon  {{ font-size: 3.5rem; display: block; text-align: center; margin-bottom: 14px; }}
+.confirm-title {{ font-size: 1.6rem; font-weight: 800; color: var(--text-main); text-align: center; margin-bottom: 12px; }}
+.confirm-text  {{ font-size: 0.93rem; color: var(--text-muted); text-align: center; line-height: 1.75; margin-bottom: 20px; }}
 .confirm-badge {{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    font-size: 0.76rem;
-    font-weight: 600;
-    color: var(--text-muted);
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    font-size: 0.76rem; font-weight: 600; color: var(--text-muted);
+    letter-spacing: 0.04em; text-transform: uppercase;
 }}
 
 /* ══ ADMIN ═════════════════════════════════════════════ */
@@ -566,20 +569,8 @@ footer    {{ visibility: hidden !important; }}
     padding: 18px 22px;
     text-align: center;
 }}
-.admin-metric .value {{
-    font-size: 2rem;
-    font-weight: 700;
-    color: var(--cuc-red);
-    line-height: 1;
-    margin-bottom: 4px;
-}}
-.admin-metric .label {{
-    font-size: 0.76rem;
-    font-weight: 500;
-    color: var(--text-muted);
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-}}
+.admin-metric .value {{ font-size: 2rem; font-weight: 700; color: var(--cuc-red); line-height: 1; margin-bottom: 4px; }}
+.admin-metric .label {{ font-size: 0.76rem; font-weight: 500; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }}
 
 /* ══ FOOTER ════════════════════════════════════════════ */
 .minimal-footer {{
@@ -598,32 +589,20 @@ div[data-testid="stToggle"] label p {{
     font-weight: 600 !important;
 }}
 
-/* ══ PILLS (st.pills / radio) ══════════════════════════ */
-div[data-testid="stPills"] button, div[data-baseweb="radio"] label {{
-    background: var(--pill-bg) !important;
-    border: 1.5px solid var(--pill-border) !important;
-    color: var(--pill-color) !important;
-    border-radius: 24px !important;
-    font-size: 0.88rem !important;
-    font-weight: 500 !important;
-    padding: 8px 16px !important;
-    transition: all 0.18s ease !important;
-    cursor: pointer;
-}}
-div[data-testid="stPills"] button[aria-selected="true"] {{
-    background: var(--cuc-red-soft) !important;
-    border-color: var(--cuc-red) !important;
-    color: var(--cuc-red) !important;
-    font-weight: 700 !important;
-}}
-
 /* ══ RESPONSIVE MOBILE ═════════════════════════════════ */
-@media (max-width: 480px) {{
+@media (max-width: 520px) {{
     .info-cards-row {{ grid-template-columns: 1fr; gap: 10px; }}
-    .welcome-title {{ font-size: 1.25rem; }}
-    .wizard-title {{ font-size: 1.05rem; }}
-    .saas-card {{ padding: 20px 16px; }}
-    .welcome-card {{ padding: 24px 18px 20px 18px; }}
+    .welcome-title  {{ font-size: 1.25rem; }}
+    .wizard-title   {{ font-size: 1.05rem; }}
+    .saas-card      {{ padding: 20px 16px; }}
+    .welcome-card   {{ padding: 24px 18px 20px 18px; }}
+    div[data-testid="stRadio"] > div[role="radiogroup"] {{
+        flex-direction: column !important;
+    }}
+    div[data-testid="stRadio"] > div[role="radiogroup"] > label {{
+        width: 100% !important;
+        justify-content: flex-start !important;
+    }}
 }}
 </style>
 """
@@ -639,6 +618,11 @@ def get_conn() -> GSheetsConnection:
 
 
 def cargar_datos() -> pd.DataFrame:
+    """
+    Lee el Google Sheet y retorna un DataFrame normalizado.
+    Activa _gs_error=True si la conexión falla para bloquear
+    registros duplicados en correo_existe().
+    """
     try:
         conn = get_conn()
         df = conn.read(usecols=list(range(len(COLUMNAS))), ttl=60)
@@ -654,6 +638,11 @@ def cargar_datos() -> pd.DataFrame:
 
 
 def correo_existe(df: pd.DataFrame, correo: str) -> bool:
+    """
+    Valida la llave primaria (correo) contra la base de datos.
+    Si hubo un error de conexión (_gs_error=True), retorna True
+    como bloqueo preventivo para evitar duplicados silenciosos.
+    """
     if st.session_state.get("_gs_error", False):
         return True
     if df.empty or "correo" not in df.columns:
@@ -665,6 +654,10 @@ def correo_existe(df: pd.DataFrame, correo: str) -> bool:
 
 
 def guardar_registro(registro: dict) -> bool:
+    """
+    Agrega un nuevo registro al Google Sheet.
+    No escribe archivos locales (compatible con Streamlit Community Cloud).
+    """
     try:
         conn = get_conn()
         df_actual = cargar_datos()
@@ -814,7 +807,7 @@ if es_admin:
 else:
     render_header()
 
-    # ── Pantalla de confirmación ───────────────────────────────────
+    # ── Pantalla de confirmación (post-envío) ─────────────────────
     if st.session_state.enviado:
         nombre_taller = st.session_state.w_nombre or "su empresa"
         st.markdown(
@@ -930,53 +923,71 @@ else:
 
     # ── PASOS 1–5: Wizard de preguntas ────────────────────────────
     elif 1 <= st.session_state.step <= TOTAL_PREGUNTAS:
-        idx = st.session_state.step - 1
-        clave, titulo_corto, pregunta, placeholder, razon, emoji = PREGUNTAS[idx]
+        idx       = st.session_state.step - 1
+        clave, titulo_corto, pregunta, placeholder_base, emoji = PREGUNTAS[idx]
         ss_key    = SS_KEYS[clave]
         qq_key    = QQ_KEYS[clave]
         es_ultima = (st.session_state.step == TOTAL_PREGUNTAS)
         opciones  = QUICK_OPTIONS[clave]
 
+        # Recuperar opción guardada y calcular su índice para st.radio
+        opcion_guardada = st.session_state.get(qq_key)
+        idx_radio = (
+            opciones.index(opcion_guardada)
+            if opcion_guardada and opcion_guardada in opciones
+            else None
+        )
+
         render_stepper(st.session_state.step)
         st.progress((st.session_state.step - 1) / TOTAL_PREGUNTAS)
 
+        # ── Cabecera de tarjeta — SIN context-box / jerga académica ──
         st.markdown(
             f"""
             <div class="saas-card" style="margin-top:14px;">
                 <span class="wizard-step">
-                    Módulo {st.session_state.step} de {TOTAL_PREGUNTAS}
+                    Módulo {st.session_state.step} de {TOTAL_PREGUNTAS} — {titulo_corto}
                 </span>
                 <span class="wizard-module-icon">{emoji}</span>
                 <h3 class="wizard-title">{pregunta}</h3>
-                <div class="context-box">
-                    🎯&nbsp; {razon}
-                </div>
+                <span class="micro-instruccion">
+                    Seleccione una opción rápida o escriba su respuesta:
+                </span>
             """,
             unsafe_allow_html=True,
         )
 
-        # ── Selección rápida visual ──────────────────────────────
-        st.markdown("**Selección rápida** *(opcional)*")
-        seleccion_rapida = st.pills(
-            label="Selección rápida",
+        # ── SELECCIÓN RÁPIDA: st.radio disfrazado como píldoras ──
+        seleccion_rapida = st.radio(
+            label="Selección rápida",          # oculto por CSS
             options=opciones,
-            default=st.session_state.get(qq_key),
-            key=f"pills_{st.session_state.step}",
+            index=idx_radio,                   # restaura selección previa
+            horizontal=True,
             label_visibility="collapsed",
+            key=f"radio_{st.session_state.step}",
         )
 
-        # ── Hint de voz ─────────────────────────────────────────
+        # ── PLACEHOLDER DINÁMICO según selección ─────────────────
+        # Si el usuario ya tocó una píldora → invitamos al detalle (opcional)
+        # Si aún no eligió nada              → mostramos el ejemplo de guía
+        if seleccion_rapida:
+            area_label       = "¿Desea agregar algún detalle adicional? (Opcional)"
+            area_placeholder = ""
+        else:
+            area_label       = "O escriba su respuesta aquí:"
+            area_placeholder = placeholder_base
+
+        # ── HINT DE VOZ ──────────────────────────────────────────
         st.markdown(
             '<span class="voz-hint">🎙️ Consejo: Usa el micrófono de tu teclado para responder más rápido.</span>',
             unsafe_allow_html=True,
         )
 
-        # ── Text area detalle ────────────────────────────────────
         respuesta_actual = st.text_area(
-            label="Cuéntenos más (opcional si ya eligió arriba):",
+            label=area_label,
             value=st.session_state[ss_key],
-            placeholder=placeholder,
-            height=120,
+            placeholder=area_placeholder,
+            height=115,
             key=f"resp_{st.session_state.step}",
         )
 
@@ -998,19 +1009,20 @@ else:
                 st.markdown('<div class="btn-rojo">', unsafe_allow_html=True)
 
             if st.button(label_next, key=f"next_{st.session_state.step}", use_container_width=True):
-                # Construir respuesta combinada (selección rápida + texto libre)
-                texto_combinado = respuesta_actual.strip()
-                if seleccion_rapida:
-                    prefijo = f"[{seleccion_rapida}] "
-                    if not texto_combinado:
-                        texto_combinado = seleccion_rapida
-                    elif not texto_combinado.startswith(prefijo):
-                        texto_combinado = prefijo + texto_combinado
+
+                # ── Combinar para NLP (formato: "[opcion] texto libre") ──
+                texto_libre = respuesta_actual.strip()
+                if seleccion_rapida and texto_libre:
+                    texto_combinado = f"[{seleccion_rapida}] {texto_libre}"
+                elif seleccion_rapida:
+                    texto_combinado = seleccion_rapida
+                else:
+                    texto_combinado = texto_libre
 
                 if not texto_combinado:
                     st.markdown(
                         '<div class="custom-alert">'
-                        "⚠️ Elige una opción o escribe una respuesta antes de continuar."
+                        "⚠️ Elija una opción o escriba su respuesta antes de continuar."
                         "</div>",
                         unsafe_allow_html=True,
                     )
