@@ -230,11 +230,28 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
              fill=True, new_x="LMARGIN", new_y="NEXT")
     pdf.ln(6)
 
-    # ── ITERACIÓN ANTI-SUPERPOSICIÓN: un taller a la vez ─────────
+    # ── Mapa de columna → texto completo de la pregunta (índice 2 de PREGUNTAS) ──
+    TEXTO_PREGUNTA = {p[0]: p[2] for p in PREGUNTAS}
+
+    # ── Umbrales de espacio libre antes de iniciar un bloque ──────
+    # Si queda menos de este margen se fuerza un salto de página,
+    # evitando "huérfanos" al comienzo o al final de una hoja.
+    MARGEN_BLOQUE_TALLER   = 60   # mm: cabecera + al menos 1 pregunta visible
+    MARGEN_BLOQUE_PREGUNTA = 28   # mm: etiqueta + enunciado + respuesta
+
+    def espacio_restante(pdf_obj: FPDF) -> float:
+        """Milímetros libres entre el cursor actual y el área de footer."""
+        return pdf_obj.h - pdf_obj.b_margin - pdf_obj.get_y()
+
+    # ── ITERACIÓN: un taller a la vez ─────────────────────────────
     for index, row in df.iterrows():
         nombre = _limpiar(str(row.get("nombre_taller", "—")))
         fecha  = _limpiar(str(row.get("timestamp",    "—")))
         correo = _limpiar(str(row.get("correo",       "—")))
+
+        # ── Control de salto de página antes del bloque del taller ──
+        if espacio_restante(pdf) < MARGEN_BLOQUE_TALLER:
+            pdf.add_page()
 
         # Cabecera de taller: fondo cian, negrita, texto blanco
         pdf.set_fill_color(*_AZ_CIAN)
@@ -263,11 +280,24 @@ def generar_pdf(df: pd.DataFrame) -> bytes:
             if respuesta_raw.startswith("[") and "] " in respuesta_raw:
                 respuesta_raw = respuesta_raw.replace("] ", " || ", 1).replace("[", "", 1)
 
-            # Etiqueta de la pregunta (diseño intacto, sin espacios manuales)
+            # ── Control de salto de página antes del bloque de cada pregunta ──
+            if espacio_restante(pdf) < MARGEN_BLOQUE_PREGUNTA:
+                pdf.add_page()
+
+            # Etiqueta de la sección (nombre corto, fondo sutil)
             pdf.set_fill_color(*_ETIQUETA_FONDO)
             pdf.set_text_color(*_AZ_MARINO)
             pdf.set_font("Helvetica", "B", 8)
             pdf.cell(w=0, h=6, text=f"{etiqueta.upper()}", fill=True, ln=True)
+
+            # ── NUEVO: enunciado completo de la pregunta en itálica pequeña ──
+            texto_pregunta = _limpiar(TEXTO_PREGUNTA.get(col, ""))
+            if texto_pregunta:
+                pdf.set_x(pdf.l_margin + 5)
+                pdf.set_text_color(*_GRIS_TEXTO)
+                pdf.set_font("Helvetica", "I", 7)
+                pdf.multi_cell(w=0, h=4, text=texto_pregunta)
+                pdf.ln(1)
 
             if not respuesta_raw or respuesta_raw.strip() in ("nan", "None", ""):
                 pdf.set_x(pdf.l_margin + 5)
